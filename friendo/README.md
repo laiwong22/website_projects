@@ -1,4 +1,4 @@
-# Kindred
+# Friendo
 
 A personal site for keeping track of your friends and journaling about life with them.
 

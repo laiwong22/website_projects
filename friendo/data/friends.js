@@ -1,4 +1,4 @@
-// Kindred data — friends. See CLAUDE.md at the repo root for the format.
+// Friendo data — friends. See CLAUDE.md at the repo root for the format.
 // These three people are SAMPLE data: replace them with your real friends.
 window.FC_DATA = window.FC_DATA || {};
 window.FC_DATA.friends = [

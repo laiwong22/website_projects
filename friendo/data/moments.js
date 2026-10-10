@@ -1,4 +1,4 @@
-// Kindred data — moments: every invite and every kind thing, in both directions.
+// Friendo data — moments: every invite and every kind thing, in both directions.
 // See CLAUDE.md at the repo root for the format. These entries are SAMPLE data.
 window.FC_DATA = window.FC_DATA || {};
 window.FC_DATA.moments = [

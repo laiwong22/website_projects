@@ -3,7 +3,7 @@
 
   const SRC = window.FC_DATA || {};
   const KINDS = ['friends', 'moments', 'journal'];
-  const STORE_KEY = 'kindred.v1';
+  const STORE_KEY = 'friendo.v1';
   const DAY = 86400000;
 
   const view = document.getElementById('view');
@@ -531,7 +531,7 @@
 
   // ---------- export / save ----------
   function serialize(k) {
-    const header = `// Kindred data — ${k}. See CLAUDE.md at the repo root for the format.\nwindow.FC_DATA = window.FC_DATA || {};\nwindow.FC_DATA.${k} = `;
+    const header = `// Friendo data — ${k}. See CLAUDE.md at the repo root for the format.\nwindow.FC_DATA = window.FC_DATA || {};\nwindow.FC_DATA.${k} = `;
     if (k !== 'journal') return header + JSON.stringify(db[k], null, 2) + ';\n';
     const tpl = s => '`' + String(s).replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${') + '`';
     const items = db.journal.map(({ body, ...rest }) => `${JSON.stringify(rest, null, 2).slice(0, -2)},\n  "body": ${tpl(body || '')}\n}`);
@@ -539,7 +539,7 @@
   }
   function openExport() {
     modalBody.innerHTML = `<div class="form"><h2>Save your changes</h2>
-      <p>Edits made on this page live only in <b>this browser</b>. To keep them for good, download the files below into <code>kindred/data/</code> and commit them, or just tell Claude what you added and it will update the files for you.</p>
+      <p>Edits made on this page live only in <b>this browser</b>. To keep them for good, download the files below into <code>friendo/data/</code> and commit them, or just tell Claude what you added and it will update the files for you.</p>
       <div class="export">${KINDS.map(k => `<div class="export-row"><code>data/${k}.js</code><span class="muted small">${plural(Object.keys(ov(k).upserts).length + ov(k).deleted.length, 'change')}</span><span class="spacer"></span>
         <button class="btn sm" data-copy="${k}">Copy</button><button class="btn sm primary" data-dl="${k}">Download</button></div>`).join('')}</div>
       <div class="form-actions"><button class="btn ghost danger" data-discard>Discard local changes</button><span class="spacer"></span><button class="btn" data-close>Close</button></div></div>`;

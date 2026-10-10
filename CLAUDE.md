@@ -1,15 +1,15 @@
 # website_projects
 
-## kindred/ — friends tracker + journal
+## friendo/ — friends tracker + journal
 
-A static site (no build step). Open `kindred/index.html` directly in a browser.
+A static site (no build step). Open `friendo/index.html` directly in a browser.
 All data lives in three plain JS files that Claude edits when the user asks:
 
 | File | What it holds |
 | --- | --- |
-| `kindred/data/friends.js` | One object per friend: who they are, likes, dislikes |
-| `kindred/data/moments.js` | Every invite and every kind act, in both directions |
-| `kindred/data/journal.js` | Journal / blog entries (Markdown) |
+| `friendo/data/friends.js` | One object per friend: who they are, likes, dislikes |
+| `friendo/data/moments.js` | Every invite and every kind act, in both directions |
+| `friendo/data/journal.js` | Journal / blog entries (Markdown) |
 
 The sample people (Maya, Jordan, Priya) and their moments/entry are placeholders.
 When the user adds their first real friends, ask whether to delete the samples.
@@ -75,6 +75,6 @@ Examples of how to translate what the user says:
 ### Conventions
 
 - Keep arrays newest-first in `moments.js` and `journal.js` (the app sorts anyway).
-- Keep the files valid JS: run `node --check kindred/data/*.js` after editing.
+- Keep the files valid JS: run `node --check friendo/data/*.js` after editing.
 - Edits made in the browser live in localStorage until exported with the "Save" button;
   if the user pastes exported file contents, replace the matching data file with them.

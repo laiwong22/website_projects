@@ -1,4 +1,4 @@
-// Kindred data — journal entries. Bodies are Markdown inside `backtick` strings.
+// Friendo data — journal entries. Bodies are Markdown inside `backtick` strings.
 // Inside a body, escape backticks as \` and "${" as \${. See CLAUDE.md at the repo root.
 // This entry is a SAMPLE; delete it once you have your own.
 window.FC_DATA = window.FC_DATA || {};
