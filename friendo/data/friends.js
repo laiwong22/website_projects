@@ -31,7 +31,7 @@ window.FC_DATA.friends = [
     "birthday": "03-14",
     "met": "College roommate, 2018",
     "likes": [
-      "kniting"
+      "knitting"
     ],
     "dislikes": [
       "loud bars",
@@ -64,11 +64,11 @@ window.FC_DATA.friends = [
     "birthday": "07-02",
     "met": "Foothill",
     "likes": [
-      "Kyote and  Friend"
+      "Kyote and Friend"
     ],
     "dislikes": [
       "Wrinkly clothes",
-      "disrepsect"
+      "disrespect"
     ]
   },
   {
@@ -95,8 +95,6 @@ window.FC_DATA.friends = [
       "design",
       "plays pickle"
     ],
-    "dislikes": [
-      "NA"
-    ]
+    "dislikes": []
   }
 ];
