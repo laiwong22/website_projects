@@ -1,31 +1,43 @@
 # Friendo
 
-A personal site for keeping track of your friends and journaling about life with them.
+A personal site for keeping up with your friends and journaling about life with them.
+Live at **https://laiwong22.github.io/website_projects/friendo/** once GitHub Pages is on (see below).
 
-- **Friends**: everyone in your circle at a glance: when you last saw them, who's been inviting whom, what they like.
-- **History**: one page per friend with every time they invited you or did something kind,
-  your side of the ledger, and their likes and dislikes (add or remove them inline).
-- **Invites**: every invite in both directions, with a "who's been inviting whom" balance.
-- **Ideas**: suggestions for what to do for each friend: return an invite you owe, say thanks for something
-  recent, plan their upcoming birthday, reconnect after a long gap, or try something built around what they love
-  (while avoiding their dislikes). "I did this" logs it for you.
-- **Journal**: your blog/journal in Markdown, linked to the friends who appear in each post.
+- **Friends**: everyone at a glance, sorted by this week's AI priority (or the order you added them, or A–Z).
+  You can filter by closeness: acquaintance, friend or close friend.
+- **History**: one page per friend. It holds their photo, closeness, an unlimited list of details to remember (sorted by AI importance
+  each week), likes and dislikes, and a timeline of every invite, gift and kind act between you.
+- **Invites**: every invite in both directions, whether you said yes or turned it down, and who's been inviting whom.
+- **Calendar**: a month view of everything, plus a **Year map** where each friend's block grows with how many
+  moments you shared and how big they were.
+- **Ideas**: suggestions for each friend:
+  - birthdays coming up
+  - thank-yous you owe
+  - making up for an invite you turned down
+  - returning invites
+  - reconnecting after a month
+  - "just because" ideas built around what they like
 
-## Using it
+  Every idea also lists their dislikes so you know what to avoid.
+- **Journal**: your private-ish journal in Markdown, linked to the friends in each post.
 
-Open `index.html` in a browser. Nothing to install.
+Every Sunday evening a Claude routine re-ranks your friends and their details and emails you a summary.
 
-There are two ways to add things:
+## Adding things
 
-1. **Ask Claude** (recommended). For example: "Maya invited me to a ramen night on Friday",
-   "write a journal post about the hike with Jordan", or "Pri hates horror movies". Claude
-   updates the files in `data/` following the rules in `../CLAUDE.md`, then commits.
-2. **Use the buttons on the site.** Browser edits are stored in that browser only. Click
-   the yellow **Save** pill to download the updated `data/*.js` files, or copy them and paste them to Claude to commit.
+1. **Ask Claude.** For example: "Maya invited me to ramen Friday and I said yes",
+   "write a journal entry about the hike with Jordan", or "Pri is allergic to peanuts". Claude edits `data/`
+   following `../CLAUDE.md` and commits.
+2. **Use the site.** Edits are kept in your browser until you press the yellow **Save** button. Connect a
+   GitHub token once per device (⚙ in the top right). The site explains how to make one.
+   After that, Save writes straight to the repo, so your laptop and phone stay in sync.
 
-The friends, moments and journal entry that ship with the site are sample data. Replace them with your own.
+## Turning on the web address (one time)
+
+GitHub → this repo → **Settings → Pages** → *Build and deployment*: Source **Deploy from a branch**,
+Branch **the default branch** and **/ (root)** → Save. The site appears at the address above within a minute or two.
 
 ## Privacy
 
-Everything is stored in this repository. If the repo is public, or you host it with
-GitHub Pages, anyone with the link can read it. Keep the repo private if that matters to you.
+The repo and the site are public right now, so anyone with the link can read your friends' details, photos and
+journal. When you're ready to make it private, the plan is to add sign-in profiles.

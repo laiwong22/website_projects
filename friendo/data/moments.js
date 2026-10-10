@@ -1,7 +1,28 @@
-// Friendo data — moments: every invite and every kind thing, in both directions.
+// Friendo data — moments: every invite, gift and kind act, in both directions.
 // See CLAUDE.md at the repo root for the format. These entries are SAMPLE data.
 window.FC_DATA = window.FC_DATA || {};
 window.FC_DATA.moments = [
+  {
+    "id": "2026-10-17-maya-ramen",
+    "date": "2026-10-17",
+    "type": "invite",
+    "from": "me",
+    "friends": ["maya"],
+    "title": "Ramen night (making up for August)",
+    "size": "medium",
+    "outcome": "pending"
+  },
+  {
+    "id": "2026-10-04-jordan-games",
+    "date": "2026-10-04",
+    "type": "invite",
+    "from": "them",
+    "friends": ["jordan"],
+    "title": "Housewarming game night",
+    "size": "medium",
+    "outcome": "no",
+    "notes": "Had a family thing. Need to make it up to him."
+  },
   {
     "id": "2026-10-02-priya-soup",
     "date": "2026-10-02",
@@ -9,7 +30,17 @@ window.FC_DATA.moments = [
     "from": "them",
     "friends": ["priya"],
     "title": "Dropped off soup when I was sick",
-    "notes": "Left it at the door with a note and a tiny cactus."
+    "size": "medium",
+    "notes": "Left it at the door with a note."
+  },
+  {
+    "id": "2026-10-02-priya-cactus",
+    "date": "2026-10-02",
+    "type": "gift",
+    "from": "them",
+    "friends": ["priya"],
+    "title": "A tiny cactus",
+    "size": "small"
   },
   {
     "id": "2026-09-27-maya-pottery",
@@ -18,7 +49,8 @@ window.FC_DATA.moments = [
     "from": "them",
     "friends": ["maya"],
     "title": "Pottery studio open night",
-    "outcome": "went",
+    "size": "medium",
+    "outcome": "yes",
     "notes": "Made a lopsided mug. Maya's was perfect, obviously."
   },
   {
@@ -28,7 +60,8 @@ window.FC_DATA.moments = [
     "from": "them",
     "friends": ["maya", "priya"],
     "title": "Indie concert at the Chapel",
-    "outcome": "went"
+    "size": "big",
+    "outcome": "yes"
   },
   {
     "id": "2026-09-05-me-brunch",
@@ -37,7 +70,8 @@ window.FC_DATA.moments = [
     "from": "me",
     "friends": ["priya"],
     "title": "Brunch to celebrate Pri's new job",
-    "outcome": "went"
+    "size": "medium",
+    "outcome": "yes"
   },
   {
     "id": "2026-08-20-maya-ramen",
@@ -46,7 +80,8 @@ window.FC_DATA.moments = [
     "from": "them",
     "friends": ["maya"],
     "title": "Ramen night",
-    "outcome": "couldn't go",
+    "size": "small",
+    "outcome": "no",
     "notes": "I had a work deadline. Owe her one."
   },
   {
@@ -56,6 +91,7 @@ window.FC_DATA.moments = [
     "from": "me",
     "friends": ["jordan"],
     "title": "Helped Jordan move apartments",
+    "size": "big",
     "notes": "Carried an absurd number of board game boxes."
   },
   {
@@ -65,7 +101,17 @@ window.FC_DATA.moments = [
     "from": "them",
     "friends": ["jordan"],
     "title": "Sunset hike with Pepper",
-    "outcome": "went"
+    "size": "medium",
+    "outcome": "yes"
+  },
+  {
+    "id": "2026-07-02-me-jordan-gift",
+    "date": "2026-07-02",
+    "type": "gift",
+    "from": "me",
+    "friends": ["jordan"],
+    "title": "Sci-fi book box set for his birthday",
+    "size": "medium"
   },
   {
     "id": "2026-07-02-me-jordan-bday",
@@ -74,7 +120,8 @@ window.FC_DATA.moments = [
     "from": "me",
     "friends": ["jordan", "maya"],
     "title": "Taco night for Jordan's birthday",
-    "outcome": "went"
+    "size": "big",
+    "outcome": "yes"
   },
   {
     "id": "2026-06-18-maya-checkin",
@@ -83,6 +130,7 @@ window.FC_DATA.moments = [
     "from": "them",
     "friends": ["maya"],
     "title": "Talked me through the job interview nerves",
+    "size": "medium",
     "notes": "Called for an hour the night before."
   },
   {
@@ -92,6 +140,16 @@ window.FC_DATA.moments = [
     "from": "them",
     "friends": ["maya"],
     "title": "Farmers market + matcha",
-    "outcome": "went"
+    "size": "small",
+    "outcome": "yes"
+  },
+  {
+    "id": "2026-03-14-me-maya-bday",
+    "date": "2026-03-14",
+    "type": "gift",
+    "from": "me",
+    "friends": ["maya"],
+    "title": "Handmade matcha set for her birthday",
+    "size": "medium"
   }
 ];
