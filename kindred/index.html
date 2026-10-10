@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kindred</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="#friends"><span class="logo" aria-hidden="true">✦</span> Kindred</a>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#friends" data-tab="friends">Friends</a>
+        <a href="#history" data-tab="history">History</a>
+        <a href="#invites" data-tab="invites">Invites</a>
+        <a href="#ideas" data-tab="ideas">Ideas</a>
+        <a href="#journal" data-tab="journal">Journal</a>
+      </nav>
+      <button id="pending" class="pending" data-act="export" hidden></button>
+    </div>
+  </header>
+
+  <main id="view" class="wrap"></main>
+
+  <dialog id="modal"><div id="modal-body"></div></dialog>
+
+  <script src="data/friends.js"></script>
+  <script src="data/moments.js"></script>
+  <script src="data/journal.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
