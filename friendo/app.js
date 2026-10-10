@@ -67,6 +67,13 @@
   const ov = k => (overlay[k] ||= { upserts: {}, deleted: [] });
   const persist = () => writeJSON(STORE_KEY, overlay);
   const baseHas = (k, id) => (SRC[k] || []).some(x => x.id === id);
+  // Key-order-insensitive comparison, so an edit that ends up where it started isn't "unsaved".
+  const stable = v => Array.isArray(v) ? `[${v.map(stable).join(',')}]`
+    : v && typeof v === 'object' ? `{${Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + stable(v[k])).join(',')}}` : JSON.stringify(v);
+  const sameAsBase = (k, obj) => {
+    const base = (SRC[k] || []).find(x => x.id === obj.id);
+    return !!base && stable(k === 'moments' ? normMoment(base) : base) === stable(k === 'moments' ? normMoment(obj) : obj);
+  };
 
   function normMoment(m) {
     const out = { ...m, friends: m.friends || [] };
@@ -81,13 +88,16 @@
   const db = {};
   function rebuild() {
     for (const k of KINDS) {
-      const o = ov(k), del = new Set(o.deleted), map = new Map();
+      const o = ov(k);
+      for (const [id, x] of Object.entries(o.upserts)) if (sameAsBase(k, x)) delete o.upserts[id];
+      const del = new Set(o.deleted), map = new Map();
       (SRC[k] || []).forEach(x => map.set(x.id, x));
       Object.values(o.upserts).forEach(x => map.set(x.id, x));
       db[k] = [...map.values()].filter(x => !del.has(x.id));
     }
     db.moments = db.moments.map(normMoment).sort((a, b) => b.date.localeCompare(a.date));
     db.journal.sort((a, b) => b.date.localeCompare(a.date));
+    persist();
   }
   function save(k, obj) {
     const o = ov(k);
