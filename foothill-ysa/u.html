@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage my texts · Foothill YSA</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1f3b63">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="top"><div class="top-inner"><a class="brand" href="./"><img src="assets/logo.svg" alt=""><div><b>Foothill YSA</b><span>Announcements</span></div></a></div></header>
+  <main class="wrap" style="max-width:560px"><div id="view" class="card stack"><p class="muted">Loading…</p></div></main>
+
+  <script src="config.js"></script>
+  <script src="assets/common.js"></script>
+  <script>
+  (() => {
+    const F = window.FYSA, { esc } = F, view = document.getElementById("view");
+    const token = new URLSearchParams(location.search).get("t") || "";
+    const demo = !F.configured;
+    let demoState = { name: "Sam Lee", phone: "(•••) •••-1234", status: "active", groups: F.demoData().groups.map((g, i) => ({ slug: g.slug, name: g.name, groupme_url: g.groupme_url, joined: i < 2, removed: false })) };
+
+    async function call(action, extra = {}) {
+      if (demo) {
+        if (action === "unsubscribe") demoState.status = "unsubscribed";
+        if (action === "resubscribe") demoState.status = "active";
+        if (action === "update") demoState.groups.forEach((g) => (g.joined = extra.groups.includes(g.slug)));
+        return structuredClone(demoState);
+      }
+      return F.callFn("manage", { action, token, ...extra });
+    }
+
+    function render(s) {
+      if (s.status === "unsubscribed") {
+        view.innerHTML = `<h1>You're unsubscribed</h1><p class="muted">${esc(s.phone)} won't get any more Foothill YSA texts.</p>
+          <button class="btn" id="resub">Oops, resubscribe me</button><p class="small muted">Or text JOIN to our number anytime.</p>`;
+        document.getElementById("resub").onclick = async () => render(await call("resubscribe"));
+        return;
+      }
+      view.innerHTML = `<div><h1>Your texts</h1><p class="muted" style="margin-top:4px">Hi${s.name ? ` ${esc(s.name.split(" ")[0])}` : ""}! Texts go to ${esc(s.phone)}.${s.status === "pending" ? " <b>Reply JOIN to our text to start getting messages.</b>" : ""}</p></div>
+        <form id="f" class="stack">
+          ${s.groups.map((g) => `<label class="check"><input type="checkbox" name="g" value="${esc(g.slug)}" ${g.joined ? "checked" : ""} ${g.removed ? "disabled" : ""}>
+            <div><b>${esc(g.name)}</b>${g.removed ? `<span class="small muted">An admin removed you from this group.</span>` : g.groupme_url && g.joined ? `<a class="small" href="${esc(g.groupme_url)}" target="_blank" rel="noopener">Open the GroupMe chat ↗</a>` : ""}</div></label>`).join("")}
+          <button class="btn primary" type="submit">Save my groups</button>
+        </form>
+        <hr style="border:0;border-top:1px solid var(--line)">
+        <div><h2>Unsubscribe</h2><p class="muted small" style="margin-top:4px">Stop all Foothill YSA texts. You can rejoin anytime.</p><button class="btn danger" id="unsub">Unsubscribe from everything</button></div>`;
+      document.getElementById("f").onsubmit = async (ev) => {
+        ev.preventDefault();
+        const groups = [...ev.target.querySelectorAll("[name=g]:checked")].map((x) => x.value);
+        render(await call("update", { groups }));
+        F.toast("Saved!");
+      };
+      document.getElementById("unsub").onclick = async () => {
+        if (await F.confirmBox("Unsubscribe?", "You'll stop getting all Foothill YSA texts.", "Unsubscribe", true)) render(await call("unsubscribe"));
+      };
+    }
+
+    if (!demo && !token) { view.innerHTML = `<h1>Link missing</h1><p class="muted">Open the link from your welcome text, or <a href="./#join">get a new link</a>.</p>`; return; }
+    call("get").then(render).catch((e) => (view.innerHTML = `<h1>Hmm.</h1><p class="muted">${esc(e.message)} <a href="./#join">Get a new link</a>.</p>`));
+  })();
+  </script>
+</body>
+</html>

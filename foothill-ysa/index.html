@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Foothill YSA</title>
+  <meta name="description" content="News, announcements and the calendar for the Foothill YSA ward. Sign up to get ward texts.">
+  <meta name="theme-color" content="#1f3b63">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div id="demo" class="demo-banner" hidden>Preview with sample data. Real announcements show up once the ward's database is connected.</div>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="#announcements"><img src="assets/logo.svg" alt=""><div><b>Foothill YSA</b><span>Announcements</span></div></a>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#announcements" data-tab="announcements">Announcements</a>
+        <a href="#calendar" data-tab="calendar">Calendar</a>
+        <a href="#join" data-tab="join">Get texts</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="view" class="wrap"></main>
+  <footer class="footer">Foothill YSA · <a href="#join">Get texts or unsubscribe</a> · <a href="admin/">Leader login</a></footer>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="assets/common.js"></script>
+  <script src="assets/site.js"></script>
+</body>
+</html>

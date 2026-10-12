@@ -1,0 +1,19 @@
+# Supabase CLI settings for Foothill YSA (run `supabase` commands from the foothill-ysa/ folder).
+project_id = "foothill-ysa"
+
+# These functions check who's calling themselves (public form, personal link token,
+# Twilio signature, admin login or cron secret), so the gateway's JWT check is off.
+[functions.subscribe]
+verify_jwt = false
+
+[functions.manage]
+verify_jwt = false
+
+[functions.twilio-inbound]
+verify_jwt = false
+
+[functions.dispatch]
+verify_jwt = false
+
+[functions.reply]
+verify_jwt = false

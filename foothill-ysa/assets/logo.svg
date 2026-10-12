@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="FYSAA — Foothill YSA Announcements">
+  <defs>
+    <clipPath id="r"><rect width="120" height="120" rx="26"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <rect width="120" height="120" fill="#1f3b63"/>
+    <circle cx="92" cy="30" r="11" fill="#f2b544"/>
+    <path d="M0 92 C 22 70, 42 70, 62 86 S 100 74, 120 80 V120 H0Z" fill="#3f7d6e"/>
+    <path d="M0 104 C 26 90, 52 92, 74 102 S 108 98, 120 100 V120 H0Z" fill="#5fa18c"/>
+  </g>
+  <text x="60" y="66" text-anchor="middle" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-weight="800" font-size="27" letter-spacing="1" fill="#ffffff">FYSAA</text>
+</svg>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FYSAA Admin</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1f3b63">
+  <link rel="icon" href="../assets/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div id="demo" class="demo-banner" hidden>Demo mode: sample data, nothing is saved or texted. Follow SETUP.md to connect the real database.</div>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="#send"><img src="../assets/logo.svg" alt=""><div><b>FYSAA Admin</b><span>Foothill YSA Announcements</span></div></a>
+      <nav class="tabs" id="tabs" aria-label="Admin sections" hidden>
+        <a href="#send" data-tab="send">Send</a>
+        <a href="#inbox" data-tab="inbox">Inbox</a>
+        <a href="#subscribers" data-tab="subscribers">Subscribers</a>
+        <a href="#groups" data-tab="groups">Groups</a>
+        <a href="#events" data-tab="events">Calendar</a>
+        <a href="#team" data-tab="team">Admins</a>
+        <a href="#share" data-tab="share">Share</a>
+      </nav>
+      <div class="row small" id="who" hidden></div>
+    </div>
+  </header>
+
+  <main id="view" class="wrap"><p class="muted">Loading…</p></main>
+  <footer class="footer"><a href="../">View the public site</a></footer>
+
+  <script src="../config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script src="../assets/common.js"></script>
+  <script src="../assets/admin.js"></script>
+</body>
+</html>
