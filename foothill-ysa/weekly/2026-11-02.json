@@ -1,0 +1,10 @@
+{
+  "month": 11,
+  "range": "NOVEMBER 2-7",
+  "days": [
+    {"dow":"MON","num":"2","text":"FHE: Life-size Angry Birds - meet at the church at 7:00"},
+    {"dow":"TUES","num":"3","text":"Stake volleyball. Join the GroupMe page (link in bio) and answer Camberlin's poll if you would like to play"},
+    {"dow":"THURS","num":"5","text":"Institute for 26-35 year-olds at the U of U institute building at 7 PM"}
+  ],
+  "other": ["Nov 22: Ward Friendsgiving dinner. Get excited!"]
+}
