@@ -2,12 +2,12 @@
   "month": 11,
   "range": "NOVEMBER 2-7",
   "days": [
-    {"dow":"MON","num":"2","text":"FHE: Life-size Angry Birds - meet at the church at 7:00"},
+    {"dow":"MON","num":"2","text":"FHE: Life-size Angry Birds - 7:00 at the church (1400 S 1900 E)"},
     {"dow":"TUES","num":"3","text":"Stake volleyball. Join the GroupMe page (link in bio) and answer Camberlin's poll if you would like to play"},
     {"dow":"THURS","num":"5","text":"Institute for 26-35 year-olds at the U of U institute building at 7 PM"}
   ],
   "other": [
-    "Sat Nov 14: Turkey Bowl flag football & BBQ at 9 AM",
-    "Sun Nov 22: Friendsgiving Feast at the church at 6 PM"
+    "Nov 14: Turkey Bowl flag football & BBQ at 9 AM",
+    "Nov 22: Friendsgiving Feast, 6 PM at 1400 S 1900 E"
   ]
 }
