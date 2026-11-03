@@ -61,6 +61,7 @@
   function showPin(error, pin) {
     show(
       '<h1 class="logo">KAB<span class="o">OO</span>M!</h1>' +
+        KBFx.granny({ mood: 'happy', say: 'Got a PIN, sweetie?', cls: 'p-granny bubble-top small' }) +
         '<form class="join-form" id="pin-form" autocomplete="off">' +
         '<input class="field pin-input" id="pin" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" placeholder="Game PIN" aria-label="Game PIN" value="' +
         esc(pin || '') +
@@ -269,7 +270,9 @@
         if (msg.view.avatar) P.avatar = msg.view.avatar;
         KB.session.set('kaboom.player', { pin: P.pin, pid: P.pid, name: P.name, avatar: P.avatar });
         KB.keepAwake();
-        renderView(msg.view);
+        // Let the rocket finish exploding before switching screens.
+        if (P.firing) P.pendingView = msg.view;
+        else renderView(msg.view);
         break;
       case 'reject':
         if (msg.reason === 'name') {
@@ -332,6 +335,8 @@
 
   function leave() {
     P.left = true;
+    P.firing = false;
+    P.pendingView = null;
     P.gaveUp = false;
     P.joined = false;
     P.resuming = false;
@@ -369,13 +374,47 @@
     return v.ahead ? KB.num(v.ahead.gap) + ' pts behind ' + v.ahead.name : '';
   }
 
+  const LINES = {
+    good: ['That’s my sweetie!', 'Clever cookie!', 'Granny’s so proud!', 'Bullseye, dear!'],
+    bad: ['Oh, bless your heart!', 'Oopsie daisy!', 'Not quite, dear!', 'So close, sweetie!'],
+    slow: ['Too slow, dear!', 'Snooze, you lose!', 'Faster next time!'],
+    locked: ['Nice shot!', 'Locked and loaded!', 'Kaboom! Got it!'],
+  };
+  const granny = (mood, say) => KBFx.granny({ mood, say, cls: 'p-granny bubble-top' });
+
+  // Tap an answer: a rocket flies up and blows up on that button.
+  function fireAt(btn, nextView) {
+    P.firing = true;
+    P.pendingView = nextView;
+    const grid = btn.parentNode;
+    grid.classList.add('fired');
+    btn.classList.add('target');
+    const to = KBFx.center(btn);
+    const box = btn.getBoundingClientRect();
+    const from = { x: window.innerWidth / 2, y: window.innerHeight + 50 };
+    KBFx.rocket(from, to, { size: Math.min(120, window.innerWidth * 0.27), duration: 460, arc: 0.12 })
+      .then(() => {
+        if (navigator.vibrate) navigator.vibrate([70, 40, 40]);
+        KBFx.explode(to, { size: Math.min(box.width, box.height) * 1.45, word: KBFx.pick(KBFx.BOOM_WORDS) });
+        btn.classList.add('hit');
+        KBFx.shake(app);
+        return KBFx.sleep(KBFx.reduced ? 150 : 900);
+      })
+      .then(() => {
+        P.firing = false;
+        const v = P.pendingView;
+        P.pendingView = null;
+        if (v) renderView(v);
+      });
+  }
+
   function renderView(v) {
     P.view = v;
     const place = v.rank ? 'You’re in ' + KB.ordinal(v.rank) + ' place' : '';
     switch (v.screen) {
       case 'lobby':
         show(
-          '<div class="big-avatar">' + esc(P.avatar) + '</div><h2>You’re in!</h2>' +
+          granny('happy', 'You’re in, ' + P.name + '!') +
             '<p class="standing">Look for your name on the big screen.</p><p class="muted">The game starts soon…</p>',
           { bar: true }
         );
@@ -383,9 +422,8 @@
 
       case 'intro':
         show(
-          '<p class="muted">Question ' + (v.q + 1) + ' of ' + v.total + '</p><h2>Get ready…</h2>' +
-            '<div class="fuse-dots" aria-hidden="true"><i></i><i></i><i></i></div>' +
-            '<p class="muted">Read the question on the big screen</p>',
+          '<p class="muted">Question ' + (v.q + 1) + ' of ' + v.total + '</p>' + granny('shout', 'Get ready!') +
+            '<p class="standing">Read the question on the big screen</p>',
           { bar: true }
         );
         break;
@@ -414,25 +452,26 @@
         );
         app.querySelector('.qgrid').addEventListener('click', (e) => {
           const b = e.target.closest('[data-choice]');
-          if (!b) return;
+          if (!b || P.firing) return;
           const choice = Number(b.dataset.choice);
           if (!send({ t: 'answer', q: v.q, choice })) return toast('Reconnecting… try again in a second');
-          if (navigator.vibrate) navigator.vibrate(35);
-          renderView(Object.assign({}, v, { screen: 'answered', choice }));
+          if (navigator.vibrate) navigator.vibrate(25);
+          fireAt(b, Object.assign({}, v, { screen: 'answered', choice }));
         });
         break;
       }
 
       case 'answered':
         show(
-          '<div class="locked-tile c' + (v.choice + 1) + '">' + (v.choice + 1) + '</div><h2>Locked in!</h2>' +
-            '<p class="muted">Waiting for everyone else…</p>',
+          granny('happy', KBFx.pick(LINES.locked)) +
+            '<div class="locked-row"><div class="locked-tile c' + (v.choice + 1) + '">' + (v.choice + 1) + '</div>' +
+            '<div><h2>Locked in!</h2><p class="muted">Waiting for everyone else…</p></div></div>',
           { bar: true }
         );
         break;
 
       case 'wait':
-        show('<div class="result-icon">⏳</div><h2>Time’s up!</h2><p class="muted">Let’s see who got it…</p>', { bar: true, mood: 'none' });
+        show(granny('shock', KBFx.pick(LINES.slow)) + '<h2>Time’s up!</h2><p class="muted">Let’s see who got it…</p>', { bar: true, mood: 'none' });
         break;
 
       case 'result': {
@@ -442,14 +481,16 @@
         if (r && r.correct) {
           mood = 'good';
           html =
-            '<div class="result-icon">✅</div><h2>Correct!</h2><div class="points">+' + KB.num(r.points) + '</div>' +
+            granny('happy', KBFx.pick(LINES.good)) + '<h2>Correct!</h2><div class="points">+' + KB.num(r.points) + '</div>' +
             (r.streak > 1 ? '<p class="streak">🔥 ' + r.streak + ' in a row' + (r.bonus ? ' · +' + r.bonus + ' bonus' : '') + '</p>' : '');
         } else if (r && r.answered) {
           mood = 'bad';
-          html = '<div class="result-icon">💥</div><h2>Not quite!</h2><p class="streak">' + (r.lostStreak ? 'Streak lost. ' : '') + 'Get the next one.</p>';
+          html = granny('shock', KBFx.pick(LINES.bad)) + '<h2>Not quite!</h2><p class="streak">' + (r.lostStreak ? 'Streak lost. ' : '') + 'Get the next one.</p>';
         } else {
           mood = 'none';
-          html = '<div class="result-icon">⏰</div><h2>Time’s up!</h2><p class="streak">' + (r ? 'You didn’t answer this one.' : 'You joined mid-question. Get ready for the next one!') + '</p>';
+          html =
+            granny('shock', r ? KBFx.pick(LINES.slow) : 'Welcome aboard, dear!') + '<h2>Time’s up!</h2><p class="streak">' +
+            (r ? 'You didn’t answer this one.' : 'You joined mid-question. Get ready for the next one!') + '</p>';
         }
         html += place ? '<p class="standing">' + place + '</p>' : '';
         const sl = standingLine(v);
@@ -461,8 +502,9 @@
       case 'standing': {
         const sl = standingLine(v);
         show(
-          '<div class="big-avatar">' + esc(P.avatar) + '</div><h2>' + (place || 'Leaderboard') + '</h2>' +
-            (sl ? '<p class="standing">' + esc(sl) + '</p>' : '') + '<p class="muted">Next question coming up…</p>',
+          granny('happy', v.rank === 1 ? 'You’re winning, sweetie!' : 'Keep going, dear!') +
+            '<h2>' + (place || 'Leaderboard') + '</h2>' + (sl ? '<p class="standing">' + esc(sl) + '</p>' : '') +
+            '<p class="muted">Next question coming up…</p>',
           { bar: true }
         );
         break;
@@ -471,8 +513,8 @@
       case 'end': {
         const medal = KB.medal(v.rank);
         show(
-          '<div class="result-icon">' + (medal || '🎉') + '</div>' +
-            '<h2>You finished ' + KB.ordinal(v.rank) + '!</h2>' +
+          granny(v.rank <= 3 ? 'shout' : 'happy', v.rank <= 3 ? 'Cookies for you, sweetie!' : 'Good game, dear!') +
+            '<h2>' + (medal ? medal + ' ' : '') + 'You finished ' + KB.ordinal(v.rank) + '!</h2>' +
             '<div class="points">' + KB.num(v.score) + ' pts</div>' +
             '<p class="standing">' + v.correct + ' of ' + v.total + ' correct</p>' +
             '<p class="muted">Stay here if the host starts another round.</p>' +

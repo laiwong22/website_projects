@@ -3,6 +3,10 @@
 A live quiz game for a room full of people. Your computer shows the questions on a big screen,
 and everyone answers on their phones by tapping 1–4.
 
+Your host is **Granny Boom**, a cartoon grandma with a bazooka. She cheers players on, heckles slow ones and
+blows up every wrong answer when time runs out. When a player taps an answer on their phone, a rocket flies in
+and explodes on that button.
+
 Live at **https://laiwong22.github.io/website_projects/kaboom/** once this folder is on the
 default branch (GitHub Pages already publishes this repo).
 
@@ -18,12 +22,13 @@ default branch (GitHub Pages already publishes this repo).
 2. Players go to the address on screen and type the 6-digit PIN, or scan the QR code. Their names pop up in the lobby.
    Click a name to remove someone, or **Lock game** to stop new people joining.
 3. Click **Start game** (or press Space). For each question:
-   - the question shows alone for a few seconds, then the 4 colored answers appear and the bomb's fuse starts burning;
-   - phones show only the numbered buttons, so players have to look at the big screen;
-   - when the fuse runs out, or everyone has answered, it goes **KABOOM**: the right answer lights up, with a
-     chart of how many people picked each option;
+   - the question shows alone for a few seconds, then the 4 colored answers appear and the timer's fuse starts burning;
+   - phones show only the numbered buttons, so players have to look at the big screen. Tapping one fires a rocket
+     at it (it explodes, and the answer is locked in);
+   - when the fuse runs out, or everyone has answered, Granny fires her bazooka: a rocket hits each wrong answer,
+     it goes **KABOOM**, and the right answer lights up with a chart of how many people picked each option;
    - **Leaderboard** shows the top 5, then **Next question**.
-4. At the end a podium shows the top 3. You can see all results, download a CSV, or **Play again**
+4. At the end a podium shows the top 3 while Granny shoots fireworks. You can see all results, download a CSV, or **Play again**
    with the same players (pick the same quiz or another one).
 
 Keyboard on the host screen: **Space / Enter / →** to go to the next step, **M** to mute, **F** for full screen.
@@ -57,6 +62,9 @@ reloading it ends the game for everyone.
 - If a phone locks or drops out, it reconnects by itself and keeps its score. Players who join late start at 0.
 - Built and tested for 15–40 players; it allows up to 100.
 - Music and sound effects are made in the browser, so there are no audio files. Use the 🔊 button (or M) to mute.
+  Phones stay silent and buzz when their rocket hits.
+- All the cartoon art (Granny, rockets, explosions) is drawn in code as SVG, so there are no image files either.
+  If a device asks for reduced motion, the effects are toned down.
 
 ## Files
 
@@ -70,6 +78,7 @@ kaboom/
   js/play.js      player logic
   js/host.js      game server and big-screen logic
   js/edit.js      editor logic
+  js/fx.js        Granny Boom, rockets and explosions (cartoon SVG + CSS animation)
   js/sound.js     synthesized music and sound effects
   vendor/         PeerJS 1.5.5 and qrcode-generator 1.4.4 (MIT, see vendor/LICENSES.md)
 ```

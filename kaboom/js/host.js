@@ -36,6 +36,25 @@
   const cur = () => G.questions[G.qi];
   const list = () => [...G.players.values()];
 
+  // ---------- Granny Boom, the host ----------
+  const pick = KBFx.pick;
+  const LINES = {
+    lobby: ['Phones out, sweeties!', 'Scan Granny\u2019s code, dear!', 'Cookies for the winner!', 'No dawdling now!', 'My bazooka is loaded!', 'Come on in, dearies!'],
+    intro: ['Ooh, this one\u2019s tricky!', 'Thinking caps on!', 'Granny knows this one!', 'Eyes on the big screen!', 'Here it comes!'],
+    go: ['Pick a number, quick!', 'Tap tap tap!', 'Ready\u2026 aim\u2026'],
+    hurry: ['Hurry up, sweetie!', 'Tick tock, dearies!', 'The fuse is burning!'],
+    fire: ['Wrong answers, begone!', 'Fire in the hole!', 'Stand back, dearies!'],
+  };
+  const granny = () => stage.querySelector('.granny');
+  const say = (text, mood) => KBFx.say(granny(), text, mood);
+
+  // She chats while everyone joins.
+  setInterval(() => {
+    if (G.phase !== 'lobby' || Date.now() < (G.quietUntil || 0)) return;
+    G.lobbyLine = ((G.lobbyLine || 0) + 1) % LINES.lobby.length;
+    say(LINES.lobby[G.lobbyLine], 'happy');
+  }, 6000);
+
   function later(fn, ms) {
     G.timers.push(setTimeout(fn, ms));
   }
@@ -212,6 +231,10 @@
     if (G.phase !== 'lobby') rankPlayers();
     S.pop();
     renderPlayers(p.pid);
+    if (G.phase === 'lobby') {
+      say('Welcome, ' + name + '!', 'shout');
+      G.quietUntil = Date.now() + 4000;
+    }
     send(conn, { t: 'view', view: viewFor(p) });
   }
 
@@ -223,7 +246,12 @@
     send(p.conn, { t: 'view', view: viewFor(p) });
     S.blip();
     const c = $('#ans-count');
-    if (c) c.textContent = G.answers.size;
+    if (c) {
+      c.textContent = G.answers.size;
+      c.classList.remove('bump');
+      void c.offsetWidth;
+      c.classList.add('bump');
+    }
     checkAllAnswered();
   }
 
@@ -399,19 +427,51 @@
     clearTimers();
     const go = () => {
       S.stopMusic(0.05);
-      S.boom();
-      blast();
       scoreQuestion();
       G.phase = 'reveal';
       broadcast();
-      later(() => {
+      blastWrong().then(() => {
+        if (G.phase !== 'reveal') return;
         render();
         G.revealReady = true;
         S.correct();
-      }, 950);
+      });
     };
     if (early) rushFuse(450, go);
     else go();
+  }
+
+  // Time's up: Granny fires a rocket at every wrong answer.
+  function blastWrong() {
+    const q = cur();
+    const g = granny();
+    if (g) g.classList.remove('urgent');
+    say(pick(LINES.fire), 'shout');
+    const tiles = [...stage.querySelectorAll('.tiles .tile')];
+    const wrong = tiles.filter((t, i) => q.answers[i] && !q.answers[i].correct);
+    const area = stage.querySelector('.tiles');
+    const targets = wrong.length ? wrong : area ? [area] : [];
+    const shots = targets.map((el, k) => KBFx.sleep(250 + k * 280).then(() => shoot(g, el, k === 0)));
+    return Promise.all(shots).then(() => KBFx.sleep(targets.length ? 750 : 300));
+  }
+
+  function shoot(g, el, first) {
+    KBFx.fire(g);
+    S.launch();
+    const to = KBFx.center(el);
+    const from = KBFx.muzzle(g) || { x: 0, y: window.innerHeight * 0.6 };
+    return KBFx.rocket(from, to, { size: Math.max(56, window.innerWidth * 0.065), duration: 560, arc: 0.18 }).then(() => {
+      const h = Math.min(el.offsetHeight, 240);
+      if (first) {
+        S.boom();
+        blast();
+      } else {
+        S.smallBoom();
+      }
+      KBFx.explode(to, { size: h * (first ? 2.3 : 1.8), word: first ? '' : pick(KBFx.BOOM_WORDS) });
+      if (el.classList.contains('tile')) el.classList.add('blasted');
+      KBFx.shake(stage);
+    });
   }
 
   function afterReveal() {
@@ -442,7 +502,34 @@
     reveal(1, () => {
       S.fanfare();
       confetti();
+      const w = G.ranked[0];
+      say(w ? 'Cookies for ' + w.name + '!' : 'What a game!', 'shout');
+      fireworks();
     });
+  }
+
+  // Granny shoots celebration rockets into the sky.
+  function fireworks() {
+    const palettes = [
+      ['#2f6fe0', '#7cc4ff', '#ffffff'],
+      ['#7b3fe4', '#ff6bd6', '#ffe14d'],
+      ['#1fa855', '#ffe14d', '#ffffff'],
+      ['#ff4d2e', '#ff9f1c', '#ffe14d'],
+    ];
+    const words = ['YAY!', 'WOO!', 'BRAVO!', 'WAHOO!'];
+    palettes.forEach((colors, i) =>
+      later(() => {
+        if (G.phase !== 'podium') return;
+        const g = granny();
+        KBFx.fire(g);
+        S.launch();
+        const to = { x: window.innerWidth * (0.3 + Math.random() * 0.6), y: window.innerHeight * (0.1 + Math.random() * 0.25) };
+        KBFx.rocket(KBFx.muzzle(g) || { x: 0, y: window.innerHeight }, to, { size: 60, duration: 650, arc: 0.3 }).then(() => {
+          S.smallBoom();
+          KBFx.explode(to, { size: Math.min(220, window.innerWidth * 0.17), colors, word: words[i] });
+        });
+      }, 300 + i * 500)
+    );
   }
 
   function playAgain() {
@@ -506,7 +593,10 @@
     const todo = chosen ? chosen.questions.filter((q) => KB.questionProblem(q)).length : 0;
     stage.innerHTML =
       '<section class="setup">' +
-      '<div><h1>Host a game</h1><p class="muted">Put this screen on the TV or projector. Players join on their phones, and this tab runs the game, so keep it open until the end.</p></div>' +
+      '<div class="setup-hero"><div><h1>Host a game</h1><p class="muted">Granny Boom runs the show. Put this screen on the TV or projector; players join on their phones. ' +
+      'This tab runs the game, so keep it open until the end.</p></div>' +
+      KBFx.granny({ mood: 'happy', say: 'Ready to rumble, dear?', cls: 'setup-granny' }) +
+      '</div>' +
       '<div><h2>1. Pick a quiz</h2>' +
       (cards ? '<div class="quiz-pick">' + cards + '</div>' : '<p class="note">No quizzes yet. <a href="edit.html">Make one in the editor</a>.</p>') +
       '</div>' +
@@ -583,7 +673,9 @@
       '<div class="big-pin">' + fmtPin(G.pin) + '</div></div>' +
       '<div class="qr" title="Scan to join">' + qrSvg(url) + '</div>' +
       '</div>' +
-      '<div class="lobby-mid" id="players"></div>' +
+      '<div class="lobby-mid"><div class="players" id="players"></div>' +
+      KBFx.granny({ mood: 'happy', flip: true, say: LINES.lobby[0], cls: 'lobby-granny' }) +
+      '</div>' +
       '<div class="lobby-bottom">' +
       '<button class="btn ghost small" type="button" data-act="lock">' + (G.locked ? '🔒 Locked' : '🔓 Lock game') + '</button>' +
       '<span class="grow muted">' + esc(G.quiz.title) + ' · ' + G.questions.length + ' questions · ' + G.duration + 's each. Click a name to remove that player.</span>' +
@@ -617,13 +709,16 @@
 
   function renderIntro() {
     const q = cur();
+    const line = G.qi === 0 ? 'First question, sweeties!' : G.qi === G.questions.length - 1 ? 'Last one! Make it count!' : pick(LINES.intro);
     stage.innerHTML =
       '<div class="intro">' +
+      KBFx.granny({ mood: 'shout', say: line, cls: 'intro-granny' }) +
+      '<div class="intro-main">' +
       '<div class="q-meta">Question ' + (G.qi + 1) + ' of ' + G.questions.length + (q.type === 'tf' ? ' · True or false' : '') + '</div>' +
       '<div class="q-text">' + esc(q.text) + '</div>' +
       (safeImg(q.image) ? '<div class="q-image">' + imageHtml(q) + '</div>' : '') +
       '<div class="intro-bar"><i style="animation-duration:' + G.introMs + 'ms"></i></div>' +
-      '</div>' +
+      '</div></div>' +
       '<div class="host-actions"><button class="btn ghost small" type="button" data-act="skip-intro">Skip ▸</button></div>';
   }
 
@@ -633,7 +728,7 @@
       q.answers
         .map(
           (a, i) =>
-            '<div class="tile c' + (i + 1) + (revealed ? (a.correct ? ' right' : ' wrong') : '') + '">' +
+            '<div class="tile c' + (i + 1) + (revealed ? (a.correct ? ' right' : ' wrong blasted') : '') + '">' +
             '<span class="n">' + (i + 1) + '</span><span class="tx">' + esc(a.text) + '</span>' +
             (revealed && a.correct ? '<span class="mark">✓</span>' : '') +
             '</div>'
@@ -643,66 +738,70 @@
     );
   }
 
-  const FUSE_D = 'M140,54 C150,34 170,42 171,24 S158,2 184,4';
+  const RING_R = 46;
+  const RING_C = 2 * Math.PI * RING_R;
 
-  function bombSvg() {
+  function timerSvg() {
     return (
-      '<svg viewBox="0 0 200 200" aria-hidden="true">' +
-      '<defs><radialGradient id="bomb-shade" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#5a5280"/><stop offset=".55" stop-color="#2a2444"/><stop offset="1" stop-color="#110e1f"/></radialGradient></defs>' +
-      '<g class="body">' +
-      '<circle cx="90" cy="128" r="66" fill="url(#bomb-shade)"/>' +
-      '<ellipse cx="64" cy="98" rx="17" ry="10" fill="#fff" opacity=".22" transform="rotate(-35 64 98)"/>' +
-      '<rect x="118" y="53" width="30" height="22" rx="5" fill="#4b4466" transform="rotate(34 133 64)"/>' +
-      '<text class="secs" id="secs" x="90" y="147" text-anchor="middle">' + G.duration + '</text>' +
-      '</g>' +
-      '<path d="' + FUSE_D + '" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6" stroke-linecap="round"/>' +
-      '<path id="fuse" d="' + FUSE_D + '" fill="none" stroke="#e9c79a" stroke-width="6" stroke-linecap="round"/>' +
-      '<g id="spark"><circle r="11" fill="#ff6b2c" opacity=".55"/><circle r="7" fill="#ffd23f"/><circle r="3.5" fill="#fff"/></g>' +
+      '<svg viewBox="0 0 140 140" aria-hidden="true">' +
+      '<circle cx="70" cy="70" r="61" fill="#fff" stroke="#1b1233" stroke-width="7"/>' +
+      '<circle cx="70" cy="70" r="' + RING_R + '" fill="none" stroke="#ebe6f7" stroke-width="14"/>' +
+      '<circle class="ring-fill" cx="70" cy="70" r="' + RING_R + '" fill="none" stroke-width="14" stroke-linecap="round" transform="rotate(-90 70 70)" stroke-dasharray="' +
+      RING_C.toFixed(2) + '" stroke-dashoffset="0"/>' +
+      '<text class="secs" x="70" y="88" text-anchor="middle">' + G.duration + '</text>' +
+      '<g class="spark"><circle r="12" fill="#ff6b2c" opacity=".55"/><circle r="7.5" fill="#ffd23f" stroke="#1b1233" stroke-width="2"/><circle r="3" fill="#fff"/></g>' +
       '</svg>'
     );
   }
 
   function renderQuestion() {
     const q = cur();
+    const hasImg = !!safeImg(q.image);
     const answered = '<div class="answered"><b id="ans-count">' + G.answers.size + '</b><span>answers</span></div>';
     const endBtn = '<p><button class="btn ghost small" type="button" data-act="end-q">End now</button></p>';
-    // With a picture: bomb left, picture middle. Without one, the bomb takes the middle.
-    const mid = safeImg(q.image)
-      ? '<div class="side"><div class="bomb" id="bomb">' + bombSvg() + '</div></div>' +
-        '<div class="q-image">' + imageHtml(q) + '</div>' +
-        '<div class="side">' + answered + endBtn + '</div>'
-      : '<div class="side">' + answered + '</div>' +
-        '<div class="q-image"><div class="bomb hero" id="bomb">' + bombSvg() + '</div></div>' +
-        '<div class="side">' + endBtn + '</div>';
+    const timer = '<div class="timer' + (hasImg ? '' : ' hero') + '" id="timer">' + timerSvg() + '</div>';
+    // Granny on the left. The timer takes the middle, unless there's a picture.
+    const mid =
+      '<div class="side granny-side">' + KBFx.granny({ mood: 'happy', say: pick(LINES.go), cls: 'q-granny' }) + '</div>' +
+      (hasImg
+        ? '<div class="q-image">' + imageHtml(q) + '</div><div class="side">' + timer + answered + endBtn + '</div>'
+        : '<div class="q-image">' + timer + '</div><div class="side">' + answered + endBtn + '</div>');
     stage.innerHTML = '<div class="q-text">' + esc(q.text) + '</div><div class="q-mid">' + mid + '</div>' + tilesHtml(q, false);
   }
 
-  function drawFuse(f) {
-    const fuse = $('#fuse');
-    const spark = $('#spark');
-    if (!fuse) return;
-    const len = fuse.getTotalLength();
-    const at = Math.max(0, Math.min(1, f)) * len;
-    fuse.style.strokeDasharray = at + ' ' + (len + 1);
-    const pt = fuse.getPointAtLength(at);
-    const jitter = 1 + Math.random() * 0.35;
-    spark.setAttribute('transform', 'translate(' + pt.x + ' ' + pt.y + ') scale(' + jitter + ')');
+  // The ring is a burning fuse: f is the fraction of time left.
+  function drawTimer(f) {
+    const fill = stage.querySelector('.ring-fill');
+    const spark = stage.querySelector('.timer .spark');
+    if (!fill) return;
+    f = Math.max(0, Math.min(1, f));
+    fill.style.strokeDashoffset = (RING_C * (1 - f)).toFixed(2);
+    const a = -Math.PI / 2 + 2 * Math.PI * f;
+    spark.setAttribute(
+      'transform',
+      'translate(' + (70 + RING_R * Math.cos(a)).toFixed(1) + ' ' + (70 + RING_R * Math.sin(a)).toFixed(1) + ') scale(' + (1 + Math.random() * 0.4).toFixed(2) + ')'
+    );
   }
 
   function runFuse() {
-    const secs = $('#secs');
-    const bomb = $('#bomb');
+    const secs = stage.querySelector('.timer .secs');
+    const timer = $('#timer');
     const total = G.duration * 1000;
     const step = () => {
       if (G.phase !== 'question') return;
       const left = Math.max(0, G.qEnd - performance.now());
-      drawFuse(left / total);
+      drawTimer(left / total);
       const s = Math.ceil(left / 1000);
       if (s !== G.lastSec) {
         if (G.lastSec !== null && s > 0 && s <= 5) S.tick(true);
+        if (G.lastSec !== null && s === 5) {
+          say(pick(LINES.hurry), 'shock');
+          const g = granny();
+          if (g) g.classList.add('urgent');
+        }
         G.lastSec = s;
         if (secs) secs.textContent = s;
-        if (bomb) bomb.classList.toggle('urgent', s <= 5);
+        if (timer) timer.classList.toggle('urgent', s <= 5);
       }
       if (left <= 0) return endQuestion(false);
       G.raf = requestAnimationFrame(step);
@@ -710,7 +809,7 @@
     step();
   }
 
-  // Everyone answered: burn the rest of the fuse quickly, then explode.
+  // Everyone answered: burn the rest of the fuse quickly, then fire.
   function rushFuse(ms, done) {
     let finished = false;
     const finish = () => {
@@ -718,16 +817,15 @@
       finished = true;
       done();
     };
-    const fuse = $('#fuse');
-    if (!fuse) return finish();
+    if (!$('#timer')) return finish();
     const from = Math.max(0, G.qEnd - performance.now()) / (G.duration * 1000);
     const t0 = performance.now();
-    const secs = $('#secs');
+    const secs = stage.querySelector('.timer .secs');
     const step = () => {
       if (finished) return;
       const k = Math.min(1, (performance.now() - t0) / ms);
       const f = from * (1 - k);
-      drawFuse(f);
+      drawTimer(f);
       if (secs) secs.textContent = Math.ceil(f * G.duration);
       if (k < 1) requestAnimationFrame(step);
       else finish();
@@ -757,12 +855,22 @@
       )
       .join('');
     const last = G.qi >= G.questions.length - 1;
+    const total = G.players.size;
+    let line = right === 1 ? 'Just one clever cookie!' : right + ' clever cookies!';
+    let mood = 'happy';
+    if (!right) {
+      line = pick(['Oh dear, nobody got it!', 'Not one of you? Oh, sweeties!']);
+      mood = 'shock';
+    } else if (right === total) {
+      line = 'Clever cookies, every one of you!';
+    }
     stage.innerHTML =
       '<div class="q-text">' + esc(q.text) + '</div>' +
       '<div class="q-mid">' +
-      '<div class="side"><div class="answered"><b>' + right + '/' + G.players.size + '</b><span>got it right</span></div></div>' +
+      '<div class="side granny-side">' + KBFx.granny({ mood, say: line, cls: 'q-granny' }) + '</div>' +
       '<div class="bars">' + bars + '</div>' +
-      '<div class="side"><button class="btn big" type="button" data-act="next">' + (last ? 'Final results ▸' : 'Leaderboard ▸') + '</button></div>' +
+      '<div class="side"><div class="answered"><b>' + right + '/' + total + '</b><span>got it right</span></div>' +
+      '<p><button class="btn big" type="button" data-act="next">' + (last ? 'Final results ▸' : 'Leaderboard ▸') + '</button></p></div>' +
       '</div>' +
       tilesHtml(q, true);
   }
@@ -782,10 +890,17 @@
       })
       .join('');
     const streaker = G.ranked.filter((p) => p.streak >= 3).sort((a, b) => b.streak - a.streak)[0];
+    const leader = G.ranked[0];
+    const line = streaker
+      ? streaker.name + ' is on fire!'
+      : leader
+        ? pick([leader.name + ' is in the lead!', 'Look at you go, ' + leader.name + '!', 'Watch out for ' + leader.name + '!'])
+        : 'Ooh, close race!';
     stage.innerHTML =
+      '<div class="board-wrap">' + KBFx.granny({ mood: 'happy', say: line, cls: 'side-granny bubble-top' }) +
       '<div class="board"><h2>Leaderboard</h2>' + rows +
       (streaker ? '<p class="q-meta" style="text-align:center">🔥 ' + esc(streaker.name) + ' is on a ' + streaker.streak + '-answer streak!</p>' : '') +
-      '</div>' +
+      '</div></div>' +
       '<div class="host-actions"><button class="btn big" type="button" data-act="next-q">Next question ▸</button></div>';
   }
 
@@ -804,7 +919,8 @@
       .join('');
     stage.innerHTML =
       '<div class="podium-wrap"><h2>' + esc(G.quiz.title) + '</h2>' +
-      '<div class="podium">' + place(2) + place(1) + place(3) + '</div>' +
+      '<div class="podium-row">' + KBFx.granny({ mood: 'shock', say: 'And the winner is\u2026', cls: 'side-granny bubble-top' }) +
+      '<div class="podium">' + place(2) + place(1) + place(3) + '</div></div>' +
       '<div class="end-actions">' +
       '<button class="btn ghost" type="button" data-act="results">All results</button>' +
       '<button class="btn ghost" type="button" data-act="csv">Download CSV</button>' +

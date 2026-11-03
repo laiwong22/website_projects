@@ -167,6 +167,14 @@ the options are always numbered 1..n.
 **Scoring** (`scoreQuestion` in `host.js`): a right answer earns `round(1000 * (1 - t/T/2))`, plus a streak
 bonus of `min((streak-1)*100, 500)`. On a multi-answer question any right option counts.
 
+**Look and feel:** a cartoon style (thick `--outline` borders, hard drop shadows, spinning sunburst background).
+The host character is **Granny Boom**, an original cartoon grandma with a bazooka, drawn as inline SVG in
+`js/fx.js` (`KBFx.granny({mood: "happy"|"shout"|"shock", say, flip, cls})`, plus `KBFx.say`, `KBFx.fire` and
+`KBFx.muzzle`). `KBFx.rocket(from, to)` flies a rocket along an arc and resolves on impact; `KBFx.explode(at, {size, word})`
+draws a comic explosion. On phones, tapping an answer fires a rocket at that button (`fireAt` in `play.js`; incoming
+views wait in `P.pendingView` until it finishes). On the host, `blastWrong()` fires at each wrong tile when time's up.
+Her lines live in `LINES` in `host.js` and `play.js`.
+
 **Conventions**
 - Keep it dependency-free apart from `kaboom/vendor/` (PeerJS 1.5.5 and qrcode-generator 1.4.4, MIT).
   Don't switch to CDN copies.

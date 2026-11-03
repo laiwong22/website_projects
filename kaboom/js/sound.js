@@ -190,6 +190,20 @@
     for (let i = 0; i < 9; i++) noise(sfxBus, { start: t + 0.15 + Math.random() * 0.9, dur: 0.04, vol: 0.15, freq: 4000 });
   });
 
+  // Bazooka: a deep thump, then the rocket's whoosh.
+  S.launch = sfx(() => {
+    const t = ctx.currentTime;
+    tone(sfxBus, { start: t, freq: 150, slideTo: 45, type: 'sine', dur: 0.22, vol: 0.7 });
+    noise(sfxBus, { start: t, dur: 0.12, vol: 0.35, filter: 'lowpass', freq: 1200 });
+    noise(sfxBus, { start: t + 0.03, dur: 0.5, vol: 0.22, filter: 'bandpass', freq: 500, freqTo: 3200, q: 1.4, attack: 0.08 });
+  });
+
+  S.smallBoom = sfx(() => {
+    const t = ctx.currentTime;
+    noise(sfxBus, { start: t, dur: 0.7, vol: 0.7, filter: 'lowpass', freq: 3500, freqTo: 90, q: 0.6 });
+    tone(sfxBus, { start: t, freq: 95, slideTo: 35, type: 'sine', dur: 0.45, vol: 0.6 });
+  });
+
   S.correct = sfx(() => {
     const t = ctx.currentTime;
     [72, 76, 79, 84].forEach((m, i) => tone(sfxBus, { start: t + i * 0.08, freq: freq(m), type: 'triangle', dur: 0.35, vol: 0.2 }));
