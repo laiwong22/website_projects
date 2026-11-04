@@ -178,6 +178,41 @@
     else if (msg.t === 'answer' && p) handleAnswer(p, msg);
   }
 
+  // A player gone quiet: no open connection, or no reply to pings for a while.
+  const isGone = (p) => !p.conn || !p.conn.open || Date.now() - p.lastSeen > 9000;
+
+  // Hook a player up to a (new) connection. If another tab still holds them, tell it to step aside.
+  function attach(p, conn) {
+    if (p.conn && p.conn !== conn) {
+      const old = p.conn;
+      p.conn = null;
+      send(old, { t: 'replaced' });
+      setTimeout(() => {
+        try {
+          old.close();
+        } catch (e) {
+          /* already closed */
+        }
+      }, 400);
+    }
+    p.conn = conn;
+    p.online = true;
+    p.lastSeen = Date.now();
+    send(conn, { t: 'view', view: viewFor(p) });
+    renderPlayers();
+  }
+
+  // The same person under a new player id (their browser forgot the old one): keep their spot and score.
+  function rekey(p, pid) {
+    const old = p.pid;
+    G.players = new Map([...G.players].map(([k, v]) => (k === old ? [pid, v] : [k, v])));
+    if (G.answers.has(old)) {
+      G.answers.set(pid, G.answers.get(old));
+      G.answers.delete(old);
+    }
+    p.pid = pid;
+  }
+
   function handleJoin(conn, msg) {
     const pid = String(msg.pid || '').slice(0, 40);
     if (!pid) return;
@@ -185,31 +220,37 @@
     const owner = playerByConn(conn);
     if (owner && owner.pid !== pid) return; // one connection, one player
     let p = G.players.get(pid);
-    if (p) {
-      // Same phone coming back (it slept, switched networks or reloaded).
-      if (p.conn && p.conn !== conn) {
-        const old = p.conn;
-        p.conn = null;
-        try {
-          old.close();
-        } catch (e) {
-          /* ignore */
+    if (p) return attach(p, conn); // same phone coming back (slept, switched apps, reloaded, new tab)
+    const name = KB.cleanName(msg.name);
+    if (!name) return send(conn, { t: 'reject', reason: 'name', msg: 'Type a nickname first.' });
+    const same = list().find((o) => o.name.toLowerCase() === name.toLowerCase());
+    if (same) {
+      const reclaim = () => {
+        rekey(same, pid);
+        if (KB.AVATARS.includes(msg.avatar)) same.avatar = msg.avatar;
+        attach(same, conn);
+        if (G.phase === 'lobby') {
+          say('Welcome back, ' + same.name + '!', 'shout');
+          G.quietUntil = Date.now() + 4000;
         }
-      }
-      p.conn = conn;
-      p.online = true;
-      p.lastSeen = Date.now();
-      send(conn, { t: 'view', view: viewFor(p) });
-      renderPlayers();
+      };
+      if (isGone(same)) return reclaim();
+      // Their old connection may have died without telling us (phone left the browser). Ask it:
+      // no answer means the nickname goes back to whoever is here now.
+      const asked = Date.now();
+      send(same.conn, { t: 'ping' });
+      setTimeout(() => {
+        if (!conn.open || same.conn === conn || G.players.get(same.pid) !== same) return;
+        if (same.lastSeen >= asked && same.conn && same.conn.open) {
+          send(conn, { t: 'reject', reason: 'name', msg: '\u201c' + name + '\u201d is already playing. Pick another nickname.' });
+        } else {
+          reclaim();
+        }
+      }, 2500);
       return;
     }
     if (G.locked) return send(conn, { t: 'reject', reason: 'locked', msg: 'This game is locked. Ask the host to unlock it.' });
     if (G.players.size >= 100) return send(conn, { t: 'reject', reason: 'full', msg: 'This game is full (100 players).' });
-    const name = KB.cleanName(msg.name);
-    if (!name) return send(conn, { t: 'reject', reason: 'name', msg: 'Type a nickname first.' });
-    if (list().some((o) => o.name.toLowerCase() === name.toLowerCase())) {
-      return send(conn, { t: 'reject', reason: 'name', msg: '“' + name + '” is taken. Pick another nickname.' });
-    }
     p = {
       pid,
       name,

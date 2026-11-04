@@ -154,9 +154,20 @@ tab ends the game. `?peer=host:port` on any page points it at a self-hosted Peer
 **Messages** (all JSON objects with a `t` field):
 - phone → host: `join {pid, name, avatar}` (also used to reconnect with the same `pid`), `answer {q, choice}`, `pong`
 - host → phone: `view {view}` (the phone renders `view.screen`: `lobby`, `intro`, `question`, `answered`,
-  `wait`, `result`, `standing`, `end`), `reject {reason, msg}`, `kicked`, `closed`, `ping` (every 4s)
+  `wait`, `result`, `standing`, `end`), `reject {reason, msg}`, `kicked`, `closed`, `replaced` (another tab
+  took over this player; the phone stops and offers "Play here instead"), `ping` (every 4s)
 - The host builds each phone's view in `viewFor()` and re-sends it on every phase change. The phone keeps no
   game state of its own, so a reconnect just gets the current view.
+
+**Leaving and coming back** (phones switching apps, locking, reopening the link):
+- The phone saves `{pin, pid, name, avatar}` under `kaboom.player` in sessionStorage *and* localStorage
+  (4-hour expiry), so a reload, a new tab, a rescanned QR code or retyping the PIN all rejoin as the same player.
+- Every rejoin creates a fresh PeerJS peer (a socket that slept in the background can look open but be dead),
+  with an 8s timeout; it reconnects at once on `visibilitychange`, `online` and `pageshow`.
+- Host `handleJoin`: a known `pid` reattaches (`attach()`, which sends `replaced` to any older connection).
+  An unknown `pid` with an existing nickname takes that player over (`rekey()`, keeping the score) if the old
+  connection is gone or doesn't answer a ping within 2.5s; otherwise it's refused as "already playing".
+  Taking over is allowed even when the game is locked.
 
 **Quizzes** live only in the browser's `localStorage["kaboom.quizzes"]` (seeded with the sample
 "Kaboom warm-up"), so there are no quiz files in the repo. Format (see `KB.normalizeQuestion` in `js/shared.js`):

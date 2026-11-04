@@ -59,7 +59,10 @@ reloading it ends the game for everyone.
   that connects browsers directly to each other.
 - Players can be on any network (home Wi-Fi, school Wi-Fi or cellular data). A very strict office or school network
   may block the connection. If a phone can't join, try it on cellular data.
-- If a phone locks or drops out, it reconnects by itself and keeps its score. Players who join late start at 0.
+- If a phone locks, leaves the browser or drops out, it rejoins by itself and keeps its score when the player
+  comes back. Reopening the link, rescanning the QR code or typing the PIN again also gets them straight back in.
+  On a different phone or browser, typing the same nickname reclaims their spot (as long as the old one is no
+  longer connected). Players who join late start at 0.
 - Built and tested for 15–40 players; it allows up to 100.
 - Music and sound effects are made in the browser, so there are no audio files. Use the 🔊 button (or M) to mute.
   Phones stay silent and buzz when their rocket hits.
