@@ -263,18 +263,54 @@
       runSpotlight();
     }
 
+    // A little rain cloud for a Favorite who let Grandma down.
+    const CLOUD =
+      '<svg viewBox="0 0 140 80" aria-hidden="true"><g fill="#d5d9e6" stroke="#1b1233" stroke-width="9">' +
+      '<circle cx="42" cy="46" r="24"/><circle cx="70" cy="34" r="30"/><circle cx="100" cy="46" r="24"/><rect x="34" y="44" width="72" height="26" rx="13"/></g>' +
+      '<g fill="#d5d9e6"><circle cx="42" cy="46" r="24"/><circle cx="70" cy="34" r="30"/><circle cx="100" cy="46" r="24"/><rect x="34" y="44" width="72" height="26" rx="13"/></g>' +
+      '<path d="M52,30 q8,-10 20,-8" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/></svg>';
+
+    // Words from the crowd floating up at the sides of the screen.
+    function crowdWords(el, words, kind, spanMs) {
+      const box = el.querySelector('.spot-crowd');
+      const n = Math.max(6, Math.round(spanMs / 240));
+      for (let i = 0; i < n; i++) {
+        F.spot.timers.push(
+          setTimeout(() => {
+            if (!box.isConnected) return;
+            const w = document.createElement('b');
+            w.className = 'crowd-word ' + kind;
+            w.textContent = KBFx.pick(words);
+            const left = Math.random() < 0.5;
+            w.style.left = (left ? 4 + Math.random() * 20 : 76 + Math.random() * 20).toFixed(1) + '%';
+            w.style.top = (10 + Math.random() * 48).toFixed(1) + '%';
+            w.style.setProperty('--rot', (Math.random() * 30 - 15).toFixed(0) + 'deg');
+            w.style.fontSize = 'clamp(26px, ' + (2.6 + Math.random() * 2.2).toFixed(1) + 'vw, 84px)';
+            box.appendChild(w);
+            setTimeout(() => w.remove(), 1800);
+          }, Math.round(i * (spanMs / n)))
+        );
+      }
+    }
+
     function runSpotlight() {
       const p = F.fav.player;
       const hit = F.outcome === 'hit';
       const after = stats();
       const before = R.stats(F.picks.slice(0, -1), F.room);
+      const showAt = C.SPOTLIGHT_BUILDUP_MS;
+      const hold = Math.max(1000, C.SPOTLIGHT_MS - showAt); // the cheer or the shame
       G.revealReady = false;
       const el = document.createElement('div');
       el.className = 'fav-spot';
       el.innerHTML =
         '<div class="spot-dim"></div>' +
+        '<div class="spot-crowd"></div>' +
         '<div class="spot-card">' +
-        '<span class="crown bounce">👑</span><span class="spot-av">' + esc(p.avatar) + '</span>' +
+        '<span class="spot-top"><span class="crown bounce">👑</span><span class="spot-cloud">' + CLOUD +
+        '<i style="left:30%;animation-delay:0s"></i><i style="left:45%;animation-delay:.25s"></i><i style="left:60%;animation-delay:.1s"></i>' +
+        '<i style="left:72%;animation-delay:.35s"></i><i style="left:38%;animation-delay:.5s"></i></span></span>' +
+        '<span class="spot-av">' + esc(p.avatar) + '</span>' +
         '<span class="spot-name">' + esc(p.name) + '</span>' +
         '<span class="spot-score"><b>' + KB.num(p.score) + '</b><i class="spot-pop">+' + C.FAVORITE_MULTIPLIER + '×</i></span>' +
         '<span class="spot-msg"></span>' +
@@ -284,38 +320,70 @@
         '<button class="btn ghost small spot-skip" type="button">Skip ▸</button>';
       document.body.appendChild(el);
       el.querySelector('.spot-skip').addEventListener('click', endSpot);
-      F.spot = { el, timers: [] };
-      S.drumroll(C.SPOTLIGHT_MS * 0.4 / 1000);
+      F.spot = { el, timers: [], stopSound: null };
+      S.drumroll(showAt / 1000);
       const at = (ms, fn) => F.spot.timers.push(setTimeout(fn, ms));
-      at(C.SPOTLIGHT_MS * 0.45, () => {
-        const card = el.querySelector('.spot-card');
-        const g = el.querySelector('.granny');
-        const name = el.querySelector('.spot-name');
-        el.classList.add(hit ? 'hit' : 'miss');
-        el.querySelector('.spot-tally').textContent = '👵 ' + after.hits + '/' + after.validPicks + (hit ? ' ✓' : ' ✗');
-        if (hit) {
-          el.querySelector('.spot-msg').textContent = 'GRANDMA’S FAVORITE! 💖';
-          el.querySelector('.spot-score b').textContent = KB.num(p.score);
-          KBFx.say(g, 'That’s my Favorite!', 'happy');
-          KBFx.hearts(KBFx.center(card), { count: 18, spread: Math.min(window.innerWidth, 900) * 0.45 });
-          S.sparkle();
-        } else {
-          el.querySelector('.spot-msg').textContent = 'Grandma’s disappointed 😤';
-          KBFx.say(g, 'Oh, sweetie…', 'shock');
-          g.classList.add('headshake');
-          KBFx.puff(KBFx.center(name), { size: Math.max(120, name.offsetWidth * 1.1) });
-          S.sigh();
-        }
-      });
-      at(C.SPOTLIGHT_MS, () => el.classList.add('out'));
-      at(C.SPOTLIGHT_MS + 380, endSpot);
+      const card = el.querySelector('.spot-card');
+      const g = el.querySelector('.granny');
+      const name = el.querySelector('.spot-name');
+
+      // Right answer: the crowd goes wild.
+      function cheer() {
+        el.classList.add('hit');
+        g.classList.add('cheer');
+        el.querySelector('.spot-tally').textContent = '👵 ' + after.hits + '/' + after.validPicks + ' ✓';
+        el.querySelector('.spot-msg').textContent = 'GRANDMA’S FAVORITE! 💖';
+        KBFx.say(g, 'That’s my Favorite!', 'happy');
+        S.sparkle();
+        F.spot.stopSound = S.cheer(hold / 1000) || null;
+        H.confetti();
+        const spread = Math.min(window.innerWidth, 900) * 0.45;
+        [0, 1100, 2200].forEach((ms) => at(showAt + ms, () => KBFx.hearts(KBFx.center(card), { count: ms ? 12 : 20, spread })));
+        [350, 1300, 2300].forEach((ms, i) =>
+          at(showAt + ms, () => {
+            const from = KBFx.muzzle(g);
+            if (!from) return;
+            KBFx.fire(g);
+            S.launch();
+            const to = { x: window.innerWidth * (0.25 + Math.random() * 0.5), y: window.innerHeight * (0.08 + Math.random() * 0.18) };
+            KBFx.rocket(from, to, { size: 56, duration: 600, arc: 0.3 }).then(() => {
+              if (!F.spot) return;
+              S.smallBoom();
+              KBFx.explode(to, { size: Math.min(200, window.innerWidth * 0.15), colors: ['#ff5f9e', '#ffd23f', '#ffffff'], word: ['YAY!', 'WOO!', 'BRAVO!'][i] });
+            });
+          })
+        );
+        at(showAt + 1700, () => KBFx.say(g, 'Clever cookie!', 'happy'));
+        crowdWords(el, ['YAY!', 'WOO!', '👏', 'BRAVO!', 'YES!', '🎉', 'WOOHOO!'], 'cheer', hold - 600);
+      }
+
+      // Wrong answer: a playful boo, never mean.
+      function shame() {
+        el.classList.add('miss');
+        el.querySelector('.spot-tally').textContent = '👵 ' + after.hits + '/' + after.validPicks + ' ✗';
+        el.querySelector('.spot-msg').textContent = 'Grandma’s disappointed 😤';
+        KBFx.say(g, 'Oh, sweetie…', 'shock');
+        g.classList.add('headshake');
+        S.sigh();
+        F.spot.stopSound = S.boo(hold / 1000) || null;
+        KBFx.puff(KBFx.center(name), { size: Math.max(120, name.offsetWidth * 1.1) });
+        at(showAt + 1600, () => KBFx.puff(KBFx.center(name), { size: Math.max(110, name.offsetWidth) }));
+        at(showAt + 1900, () => KBFx.say(g, 'I still love you, dear.', 'happy'));
+        crowdWords(el, ['BOO!', 'AWW!', 'BOOO!', '👎', 'OOF!', 'TSK TSK!'], 'boo', hold - 600);
+      }
+
+      at(showAt, hit ? cheer : shame);
+      at(showAt + hold, () => el.classList.add('out'));
+      at(showAt + hold + 380, endSpot);
     }
 
     function endSpot() {
       if (!F.spot) return;
-      F.spot.timers.forEach(clearTimeout);
-      F.spot.el.remove();
+      const spot = F.spot;
       F.spot = null;
+      spot.timers.forEach(clearTimeout);
+      if (spot.stopSound) spot.stopSound();
+      spot.el.remove();
       G.revealReady = true;
     }
 
@@ -484,7 +552,7 @@
     }
 
     function render(phase) {
-      document.querySelectorAll('.fav-spot').forEach((el) => el.remove());
+      if (F.spot) endSpot();
       if (phase === 'pick' || phase === 'pickwait') return renderPick();
       if (phase === 'crown') return renderCrown();
       if (phase === 'verdict') return renderVerdict();

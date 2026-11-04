@@ -56,16 +56,17 @@ don't share a saved player). You need **1 host, 1 Grandma and at least 3 players
    everyone else: "Grandma picked Ana".
 8. While answering, the host shows the crown badge with Ana's name. When Ana answers, Gran's phone shows
    "✔ Ana locked in an answer" but **not** which answer.
-9. Ana answers right. After the usual reveal, the spotlight shows "GRANDMA'S FAVORITE! 💖" with hearts,
-   "+1.25×" and a sparkle sound. Ana's phone shows the Favorite bonus. The leaderboard has the strip
+9. Ana answers right. After the usual reveal and a short drumroll, the spotlight holds for about 3½ seconds:
+   "GRANDMA'S FAVORITE! 💖", a cheering crowd, hearts, confetti, celebration rockets and "+1.25×". Ana's phone shows the Favorite bonus. The leaderboard has the strip
    "Grandma's picks: 1/1 (100%) vs. Room: …%", and Gran isn't on the leaderboard.
 
 **Wrong Favorite, and graying**
 10. Next round, Ana is grayed out on Gran's phone, tagged "picked last round". Each player shows ●○ dots for
     picks used.
 11. Gran taps Ben but doesn't press Lock in: when the countdown ends, Ben is locked in anyway.
-12. Ben answers wrong: the spotlight shows Grandma shaking her head, a smoke puff on Ben's name,
-    "Grandma's disappointed 😤" and a sigh. Press **Skip** or Space to cut it short.
+12. Ben answers wrong: for about 3½ seconds the crowd boos, the crown tumbles off, a rain cloud hovers over Ben,
+    Grandma shakes her head and says "Grandma's disappointed 😤". Press **Skip** or Space to cut it short (the
+    sound stops too).
 
 **Favorite who times out**
 13. Pick a Favorite who doesn't answer. When time runs out (or the host clicks **End now**), it counts as a

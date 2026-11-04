@@ -2764,6 +2764,181 @@ dialog.player-menu h2 {
   font-size: clamp(54px, 8vh, 110px);
 }
 
+.spot-top {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: clamp(54px, 8vh, 110px);
+}
+
+/* the rain cloud only shows for a miss */
+.spot-cloud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(120px, 13vw, 210px);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+}
+
+.spot-cloud svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.spot-cloud i {
+  position: absolute;
+  top: 78%;
+  width: 6px;
+  height: 18px;
+  border-radius: 6px;
+  background: #7cc4ff;
+  border: 2px solid var(--outline);
+  opacity: 0;
+}
+
+.fav-spot.miss .spot-cloud {
+  animation: cloud-in 0.6s 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) forwards;
+}
+
+.fav-spot.miss .spot-cloud i {
+  animation: rain 0.7s linear 1s infinite;
+}
+
+@keyframes cloud-in {
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rain {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(70px);
+    opacity: 0;
+  }
+}
+
+/* cheer: the crown spins, the name pulses like a heartbeat, the card glows */
+.fav-spot.hit .crown {
+  animation: crown-bounce 0.7s cubic-bezier(0.2, 1.8, 0.4, 1) both, crown-wiggle 0.9s ease-in-out 0.7s infinite;
+}
+
+@keyframes crown-wiggle {
+  0%,
+  100% {
+    transform: rotate(-10deg) scale(1);
+  }
+  50% {
+    transform: rotate(10deg) scale(1.15);
+  }
+}
+
+.fav-spot.hit .spot-name {
+  animation: heartbeat 0.8s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(0.98);
+  }
+}
+
+.fav-spot.hit .spot-card {
+  filter: drop-shadow(0 0 34px rgba(255, 138, 192, 0.75));
+}
+
+/* shame: the crown tumbles off, the name droops */
+.fav-spot.miss .crown {
+  animation: crown-fall 1.1s cubic-bezier(0.5, 0, 0.8, 0.4) forwards;
+}
+
+@keyframes crown-fall {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  20% {
+    transform: translateY(-12px) rotate(-12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40px, 55vh) rotate(170deg);
+    opacity: 0;
+  }
+}
+
+.spot-granny.cheer svg {
+  animation: granny-jump 0.55s ease-in-out infinite;
+}
+
+@keyframes granny-jump {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  50% {
+    transform: translateY(-7%) rotate(-3deg);
+  }
+}
+
+.spot-granny.headshake svg {
+  animation: headshake 0.7s ease-in-out 5;
+}
+
+.spot-crowd {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.crowd-word {
+  position: absolute;
+  font-family: var(--display);
+  font-weight: 400;
+  white-space: nowrap;
+  text-shadow: var(--toon);
+  transform: translate(-50%, 0) rotate(var(--rot));
+  animation: crowd-float 1.7s ease-out forwards;
+}
+
+.crowd-word.cheer {
+  color: var(--spark);
+}
+
+.crowd-word.boo {
+  color: #cfe3ff;
+}
+
+@keyframes crowd-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 24px) rotate(var(--rot)) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) rotate(var(--rot)) scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -90px) rotate(var(--rot)) scale(1);
+  }
+}
+
 .spot-av {
   font-size: clamp(54px, 9vh, 120px);
   line-height: 1;
@@ -2833,8 +3008,23 @@ dialog.player-menu h2 {
 }
 
 .fav-spot.miss .spot-name {
-  animation: hit 0.45s ease-out;
+  animation: droop 1s ease-out forwards;
   filter: grayscale(0.6);
+}
+
+@keyframes droop {
+  0% {
+    transform: none;
+  }
+  15% {
+    transform: translateX(-10px) rotate(-3deg);
+  }
+  30% {
+    transform: translateX(8px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(8px) rotate(-4deg);
+  }
 }
 
 .spot-tally {
@@ -3113,12 +3303,28 @@ body.play.is-gold {
   background-image: radial-gradient(circle at 50% 38%, #ffd23f 0%, #d98e00 70%);
 }
 
-body.play.is-gold .p-main {
+/* text on the gold screens sits on a white card so it's easy to read */
+.text-card {
+  width: 100%;
+  background: #fff;
   color: var(--outline);
+  border: 4px solid var(--outline);
+  border-radius: 22px;
+  padding: 16px 18px;
+  box-shadow: 0 6px 0 var(--outline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: pop-in 0.4s ease-out;
 }
 
-body.play.is-gold .muted {
-  color: rgba(27, 18, 51, 0.8);
+.play .text-card h2 {
+  color: var(--a1);
+  text-shadow: 0 3px 0 rgba(27, 18, 51, 0.18);
+}
+
+.text-card .muted {
+  color: #5b5379;
 }
 
 .fav-phone-count {
