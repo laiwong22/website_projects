@@ -54,8 +54,10 @@ for that question are multiplied by 1.25. Grandma has her own goal: her Favorite
    selected locks when time runs out. If she hasn't picked, the game waits, and the host can use
    **🎲 Random pick** or **Pick for Grandma** (handy if her phone dies).
 3. **Crown:** a 👑 lands on the Favorite's name, and it stays there while everyone answers like in Classic.
-4. **Reveal:** the usual Classic reveal, then the **Favorite Spotlight**: hearts and "GRANDMA'S FAVORITE! 💖"
-   for a right answer, or a head shake and a smoke puff for a miss. Press **Skip** or Space to cut it short.
+4. **Reveal:** the usual Classic reveal, then the **Favorite Spotlight**: a drumroll, then about 3½ seconds of
+   cheer or shame. A right answer gets a cheering crowd, hearts, confetti, celebration rockets and
+   "GRANDMA'S FAVORITE! 💖". A miss gets a playful crowd boo, the crown tumbling off, a little rain cloud and
+   Granny shaking her head. Press **Skip** or Space to cut it short.
 5. **Leaderboard:** the normal one, plus Grandma's tally, e.g. `Grandma's picks: 5/7 (71%) vs. Room: 61%`.
 6. **End:** the podium, then **Grandma's Verdict** (did her picks beat the room's correct rate?), then the
    **Favorites recap** with every pick and the most trusted player.
@@ -73,8 +75,10 @@ How Grandma's score works:
 - **Grandma wins** only if her rate is higher. A tie goes to the room.
 
 Settings are in one place, at the top of `js/modes/favorite-rules.js`: `LOBBY_SECONDS` (10),
-`FAVORITE_MULTIPLIER` (1.25), `SPOTLIGHT_MS` (2000), `EXTRA_PICK_ALLOWANCE` (0), `GRANDMA_WINS_TIES` (false).
-The crown fanfare, sparkle and sigh are synthesized like the other sounds; there are no audio files.
+`FAVORITE_MULTIPLIER` (1.25), `SPOTLIGHT_MS` (4500, the whole spotlight), `SPOTLIGHT_BUILDUP_MS` (1000, the drumroll
+before the cheer or shame), `EXTRA_PICK_ALLOWANCE` (0), `GRANDMA_WINS_TIES` (false).
+The crown fanfare, sparkle, sigh and the crowd cheering and booing are synthesized like the other sounds; there are
+no audio files.
 
 ## Scoring
 

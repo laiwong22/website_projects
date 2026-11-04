@@ -11,7 +11,8 @@
   const CONFIG = {
     LOBBY_SECONDS: 10, // the "Pick Me" window before answering opens
     FAVORITE_MULTIPLIER: 1.25, // points multiplier when the Favorite answers correctly
-    SPOTLIGHT_MS: 2000, // length of the Favorite Spotlight after the reveal
+    SPOTLIGHT_MS: 4500, // length of the Favorite Spotlight after the reveal (build-up + cheer or shame)
+    SPOTLIGHT_BUILDUP_MS: 1000, // drumroll before the result; the cheer or shame lasts SPOTLIGHT_MS minus this
     EXTRA_PICK_ALLOWANCE: 0, // extra picks allowed per player on top of ceil(questions / players)
     GRANDMA_WINS_TIES: false, // false: a tie between Grandma and the room goes to the room
     ANNOUNCE_MS: 1500, // the crown announcement

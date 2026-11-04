@@ -162,8 +162,8 @@
   // ---------- sound effects ----------
   const sfx = (fn) =>
     function () {
-      if (!ctx || muted) return;
-      fn.apply(null, arguments);
+      if (!ctx || muted) return undefined;
+      return fn.apply(null, arguments);
     };
 
   S.pop = sfx(() => {
@@ -233,6 +233,143 @@
     tone(sfxBus, { start: t, freq: 330, slideTo: 196, type: 'triangle', dur: 0.9, vol: 0.22, attack: 0.08, hold: 0.5 });
     tone(sfxBus, { start: t + 0.02, freq: 415, slideTo: 247, type: 'sine', dur: 0.85, vol: 0.08, attack: 0.1, hold: 0.45 });
     noise(sfxBus, { start: t, dur: 0.8, vol: 0.05, filter: 'lowpass', freq: 1200, freqTo: 400, attack: 0.15 });
+  });
+
+  // A crowd sound gets its own volume knob so it can be cut short (the host skipped the spotlight).
+  function crowdOut() {
+    const g = ctx.createGain();
+    g.gain.value = 1;
+    g.connect(sfxBus);
+    return {
+      bus: g,
+      stop() {
+        try {
+          g.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.08);
+          setTimeout(() => g.disconnect(), 900);
+        } catch (e) {
+          /* already gone */
+        }
+      },
+    };
+  }
+
+  // Noise shaped into a vowel-ish crowd roar that swells in, wobbles, and fades.
+  function roar(bus, t, dur, bands) {
+    bands.forEach(([f, v, q]) => {
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuf;
+      src.loop = true;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = f;
+      bp.Q.value = q || 1.2;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(v, t + 0.35);
+      for (let at = 0.85; at < dur - 0.8; at += 0.45) g.gain.linearRampToValueAtTime(v * (0.6 + Math.random() * 0.5), t + at);
+      g.gain.linearRampToValueAtTime(v * 0.75, t + dur - 0.7);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(bp);
+      bp.connect(g);
+      g.connect(bus);
+      src.start(t, Math.random());
+      src.stop(t + dur + 0.1);
+    });
+  }
+
+  // The Favorite got it right: a cheering crowd (roar, applause, "woo!"s and whistles). Returns stop().
+  S.cheer = sfx((secs) => {
+    const dur = secs || 3.5;
+    const t = ctx.currentTime;
+    const out = crowdOut();
+    roar(out.bus, t, dur, [
+      [700, 0.6],
+      [1150, 0.52],
+      [2500, 0.3],
+    ]);
+    const claps = Math.floor(dur * 36);
+    for (let i = 0; i < claps; i++) {
+      noise(out.bus, {
+        start: t + 0.1 + Math.random() * (dur - 0.6),
+        dur: 0.03,
+        vol: 0.08 + Math.random() * 0.12,
+        filter: 'bandpass',
+        freq: 1100 + Math.random() * 1900,
+        q: 0.9,
+        attack: 0.002,
+      });
+    }
+    for (let i = 0; i < 14; i++) {
+      const at = t + Math.random() * Math.max(0.2, dur - 1);
+      const f0 = 220 + Math.random() * 280;
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f0, at);
+      o.frequency.exponentialRampToValueAtTime(f0 * 1.6, at + 0.25);
+      o.frequency.exponentialRampToValueAtTime(f0 * 1.2, at + 0.7);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 850 + Math.random() * 550;
+      bp.Q.value = 2;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.11, at + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + 0.75);
+      o.connect(bp);
+      bp.connect(g);
+      g.connect(out.bus);
+      o.start(at);
+      o.stop(at + 0.8);
+    }
+    [0.5, 1.7, Math.max(0.6, dur - 1.2)].forEach((d) => tone(out.bus, { start: t + d, freq: 1900, slideTo: 3100, type: 'sine', dur: 0.45, vol: 0.06 }));
+    return out.stop;
+  });
+
+  // The Favorite got it wrong: a playful crowd "booooo" (wobbly low voices over a murmur). Returns stop().
+  S.boo = sfx((secs) => {
+    const dur = secs || 3.5;
+    const t = ctx.currentTime;
+    const out = crowdOut();
+    for (let i = 0; i < 16; i++) {
+      const at = t + (i < 10 ? Math.random() * 0.5 : 1.3 + Math.random() * 0.7);
+      const len = Math.max(0.6, Math.min(t + dur - at, 1.5 + Math.random() * 1.4));
+      const f0 = 100 + Math.random() * 95;
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(f0, at);
+      o.frequency.linearRampToValueAtTime(f0 * 0.86, at + len);
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 4 + Math.random() * 2.5;
+      const depth = ctx.createGain();
+      depth.gain.value = f0 * 0.03;
+      lfo.connect(depth);
+      depth.connect(o.frequency);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 700;
+      const oo = ctx.createBiquadFilter();
+      oo.type = 'peaking';
+      oo.frequency.value = 330 + Math.random() * 90;
+      oo.gain.value = 9;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(0.05, at + 0.25);
+      g.gain.setValueAtTime(0.05, at + len * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+      o.connect(lp);
+      lp.connect(oo);
+      oo.connect(g);
+      g.connect(out.bus);
+      o.start(at);
+      lfo.start(at);
+      o.stop(at + len + 0.05);
+      lfo.stop(at + len + 0.05);
+    }
+    roar(out.bus, t, dur, [
+      [300, 0.12, 0.8],
+      [800, 0.05, 1],
+    ]);
+    return out.stop;
   });
 
   S.correct = sfx(() => {

@@ -10,7 +10,9 @@ const reasons = (elig) => Object.fromEntries(elig.list.map((x) => [x.pid, x.reas
 test('config has the documented defaults', () => {
   assert.equal(R.CONFIG.LOBBY_SECONDS, 10);
   assert.equal(R.CONFIG.FAVORITE_MULTIPLIER, 1.25);
-  assert.equal(R.CONFIG.SPOTLIGHT_MS, 2000);
+  assert.equal(R.CONFIG.SPOTLIGHT_MS, 4500);
+  assert.equal(R.CONFIG.SPOTLIGHT_BUILDUP_MS, 1000);
+  assert.ok(R.CONFIG.SPOTLIGHT_MS - R.CONFIG.SPOTLIGHT_BUILDUP_MS >= 3000, 'at least 3 seconds of cheer or shame');
   assert.equal(R.CONFIG.EXTRA_PICK_ALLOWANCE, 0);
   assert.equal(R.CONFIG.GRANDMA_WINS_TIES, false);
 });

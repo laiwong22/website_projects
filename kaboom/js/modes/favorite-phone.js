@@ -38,8 +38,8 @@
 
   screens['fav-crowned'] = (v, A) => {
     A.show(
-      '<div class="crown-phone">👑</div><h2>You’re Grandma’s Favorite!</h2>' +
-        '<p class="standing">Get it right for ' + v.mult + '× points.</p><p class="muted">Watch the big screen…</p>',
+      '<div class="crown-phone">👑</div><div class="text-card"><h2>You’re Grandma’s Favorite!</h2>' +
+        '<p class="standing">Get it right for ' + v.mult + '× points.</p><p class="muted">Watch the big screen…</p></div>',
       { bar: true, mood: 'gold' }
     );
     if (navigator.vibrate) navigator.vibrate([60, 60, 120]);
@@ -145,10 +145,10 @@
       A.show(A.granny('shock', 'The moment of truth…') + '<h2>Did you know them best?</h2><p class="standing">Watch the big screen for your verdict!</p>', { bar: true });
       return;
     }
-    A.show(
-      A.granny(v.wins ? 'happy' : 'shock', v.wins ? 'I knew it!' : 'Hmph. Next time!') +
-        '<h2>' + A.esc(v.verdict) + '</h2><p class="standing">' + A.esc(v.tallyText) + '</p>',
-      { bar: true, mood: v.wins ? 'gold' : '' }
-    );
+    const text = '<h2>' + A.esc(v.verdict) + '</h2><p class="standing">' + A.esc(v.tallyText) + '</p>';
+    A.show(A.granny(v.wins ? 'happy' : 'shock', v.wins ? 'I knew it!' : 'Hmph. Next time!') + (v.wins ? '<div class="text-card">' + text + '</div>' : text), {
+      bar: true,
+      mood: v.wins ? 'gold' : '',
+    });
   };
 })();

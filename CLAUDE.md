@@ -201,7 +201,9 @@ and `view(p, v)`. Phone screens for a mode register in `KB.phoneScreens[name] = 
 `KBFavRules` and in Node for tests); `favorite.js` is the host side; `favorite-phone.js` the phone screens. The Grandma is
 the player with `p.role === 'grandma'` (set from the lobby menu); she isn't a contestant. Players get a public `tag`
 (pickers use it; the `pid` stays private). Extra phases: `pick` → `pickwait` → `crown` → Classic `question`/`reveal`
-(+ the spotlight overlay) → `board`; after `podium`: `verdict` → `recap`. Grandma's phone sends `fav-pick {tag}` and
+(+ the spotlight overlay) → `board`; after `podium`: `verdict` → `recap`. The Favorite Spotlight runs `SPOTLIGHT_BUILDUP_MS`
+of drumroll, then cheer (`S.cheer`) or shame (`S.boo`) until `SPOTLIGHT_MS`; those crowd sounds return a stop function
+that Skip calls. Grandma's phone sends `fav-pick {tag}` and
 `fav-lock {tag}`; phone screens are `fav-pickme`, `fav-crowned`, `fav-picked`, `gm-lobby`, `gm-pick`, `gm-wait`,
 `gm-result`, `gm-end`.
 
