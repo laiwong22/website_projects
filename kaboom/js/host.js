@@ -9,7 +9,8 @@
   const S = KBSound;
 
   const G = {
-    phase: 'setup', // setup | lobby | intro | question | boom | reveal | board | podium
+    phase: 'setup', // setup | lobby | intro | question | boom | reveal | board | podium (+ phases a mode adds)
+    modeId: KB.getMode(KB.store.get('kaboom.mode', 'classic')).id,
     quizzes: [],
     quizId: null,
     duration: KB.TIMERS.includes(KB.store.get('kaboom.timer', 20)) ? KB.store.get('kaboom.timer', 20) : 20,
@@ -35,6 +36,16 @@
   const fmtPin = (pin) => pin.slice(0, 3) + ' ' + pin.slice(3);
   const cur = () => G.questions[G.qi];
   const list = () => [...G.players.values()];
+
+  // ---------- game modes (see js/modes.js) ----------
+  // Classic has no hooks, so every `hooks.x` check below falls through to the original behavior.
+  let hooks = {};
+  const contestants = () => (hooks.isContestant ? list().filter(hooks.isContestant) : list());
+  function useMode(id) {
+    const m = KB.getMode(id);
+    G.modeId = m.id;
+    hooks = m.create ? m.create(H) || {} : {};
+  }
 
   // ---------- Granny Boom, the host ----------
   const pick = KBFx.pick;
@@ -176,6 +187,7 @@
     }
     if (msg.t === 'join') handleJoin(conn, msg);
     else if (msg.t === 'answer' && p) handleAnswer(p, msg);
+    else if (p && hooks.onMessage) hooks.onMessage(p, msg);
   }
 
   // A player gone quiet: no open connection, or no reply to pings for a while.
@@ -253,6 +265,7 @@
     if (G.players.size >= 100) return send(conn, { t: 'reject', reason: 'full', msg: 'This game is full (100 players).' });
     p = {
       pid,
+      tag: KB.uid('t'),
       name,
       avatar: KB.AVATARS.includes(msg.avatar) ? msg.avatar : KB.AVATARS[0],
       conn,
@@ -281,6 +294,7 @@
 
   function handleAnswer(p, msg) {
     if (G.phase !== 'question' || msg.q !== G.qi || G.answers.has(p.pid)) return;
+    if (hooks.isContestant && !hooks.isContestant(p)) return;
     const choice = Number(msg.choice);
     if (!Number.isInteger(choice) || choice < 0 || choice >= cur().answers.length) return;
     G.answers.set(p.pid, { choice, ms: Math.max(0, performance.now() - G.qStart) });
@@ -293,12 +307,13 @@
       void c.offsetWidth;
       c.classList.add('bump');
     }
+    if (hooks.onAnswer) hooks.onAnswer(p);
     checkAllAnswered();
   }
 
   function checkAllAnswered() {
     if (G.phase !== 'question') return;
-    const online = list().filter((p) => p.online);
+    const online = contestants().filter((p) => p.online);
     if (online.length && online.every((p) => G.answers.has(p.pid))) endQuestion(true);
   }
 
@@ -339,6 +354,11 @@
 
   // ---------- what each phone shows ----------
   function viewFor(p) {
+    const v = baseView(p);
+    return hooks.view ? hooks.view(p, v) || v : v;
+  }
+
+  function baseView(p) {
     const v = { name: p.name, avatar: p.avatar, score: p.score, rank: p.rank, ahead: p.ahead };
     const q = cur();
     const total = G.questions.length;
@@ -376,7 +396,7 @@
     const q = cur();
     const dur = G.duration * 1000;
     G.counts = q.answers.map(() => 0);
-    for (const p of G.players.values()) {
+    for (const p of contestants()) {
       p.prevRank = p.rank;
       const a = G.answers.get(p.pid);
       if (a) G.counts[a.choice]++;
@@ -384,10 +404,11 @@
         p.streak++;
         const base = Math.round(1000 * (1 - Math.min(a.ms, dur) / dur / 2));
         const bonus = Math.min((p.streak - 1) * 100, 500);
-        p.gain = base + bonus;
+        p.gain = hooks.adjustPoints ? hooks.adjustPoints(p, base + bonus) : base + bonus;
         p.score += p.gain;
         p.correctCount++;
         p.last = { q: G.qi, answered: true, correct: true, points: p.gain, bonus, streak: p.streak };
+        if (p.gain > base + bonus) p.last.boost = p.gain - (base + bonus);
       } else {
         p.gain = 0;
         p.last = { q: G.qi, answered: !!a, correct: false, points: 0, lostStreak: p.streak >= 2 };
@@ -395,10 +416,11 @@
       }
     }
     rankPlayers();
+    if (hooks.afterScore) hooks.afterScore();
   }
 
   function rankPlayers() {
-    const sorted = list().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
+    const sorted = contestants().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
     sorted.forEach((p, i) => {
       const prev = sorted[i - 1];
       p.rank = prev && prev.score === p.score ? prev.rank : i + 1;
@@ -426,7 +448,10 @@
 
   function startGame() {
     if (!G.players.size) return toast('Wait for at least one player to join.');
+    const warn = hooks.canStart ? hooks.canStart() : '';
+    if (warn) return toast(warn);
     S.unlock();
+    if (hooks.onStart) hooks.onStart();
     G.qi = -1;
     nextQuestion();
   }
@@ -435,8 +460,9 @@
     clearTimers();
     G.qi++;
     if (G.qi >= G.questions.length) return showPodium();
-    G.phase = 'intro';
     G.answers = new Map();
+    if (hooks.beginQuestion && hooks.beginQuestion()) return;
+    G.phase = 'intro';
     G.introMs = Math.min(7000, 3000 + cur().text.length * 30);
     render();
     broadcast();
@@ -445,13 +471,15 @@
     later(startAnswering, G.introMs);
   }
 
-  function startAnswering() {
-    if (G.phase !== 'intro') return;
+  // force: a mode calls this from its own pre-answer phase (Classic always comes from 'intro').
+  function startAnswering(force) {
+    if (G.phase !== 'intro' && force !== true) return;
     clearTimers();
     G.phase = 'question';
     G.qStart = performance.now();
     G.qEnd = G.qStart + G.duration * 1000;
     G.lastSec = null;
+    if (hooks.onAnswerStart) hooks.onAnswerStart();
     render();
     broadcast();
     S.music('question');
@@ -476,6 +504,7 @@
         render();
         G.revealReady = true;
         S.correct();
+        if (hooks.afterReveal) hooks.afterReveal();
       });
     };
     if (early) rushFuse(450, go);
@@ -578,6 +607,7 @@
     const quiz = G.quizzes.find((z) => z.id === (sel ? sel.value : G.quiz.id)) || G.quiz;
     if (!loadQuiz(quiz)) return;
     clearTimers();
+    useMode(G.modeId); // fresh mode state; roles (like Grandma) stay on the players
     for (const p of G.players.values()) Object.assign(p, { score: 0, streak: 0, correctCount: 0, rank: 0, prevRank: 0, ahead: null, last: null, gain: 0 });
     G.qi = -1;
     G.phase = 'lobby';
@@ -595,6 +625,7 @@
 
   function primary() {
     S.unlock();
+    if (hooks.onPrimary && hooks.onPrimary()) return;
     if (G.phase === 'lobby') startGame();
     else if (G.phase === 'intro') startAnswering();
     else if (G.phase === 'reveal') afterReveal();
@@ -638,10 +669,17 @@
       'This tab runs the game, so keep it open until the end.</p></div>' +
       KBFx.granny({ mood: 'happy', say: 'Ready to rumble, dear?', cls: 'setup-granny' }) +
       '</div>' +
-      '<div><h2>1. Pick a quiz</h2>' +
+      '<div><h2>1. Game mode</h2><div class="mode-pick">' +
+      KB.MODES.map(
+        (m) =>
+          '<button class="mode-card" type="button" data-mode="' + esc(m.id) + '" aria-pressed="' + (m.id === G.modeId) + '">' +
+          '<span class="mode-icon">' + m.icon + '</span><b>' + esc(m.name) + '</b><span class="muted">' + esc(m.tagline) + '</span></button>'
+      ).join('') +
+      '</div></div>' +
+      '<div><h2>2. Pick a quiz</h2>' +
       (cards ? '<div class="quiz-pick">' + cards + '</div>' : '<p class="note">No quizzes yet. <a href="edit.html">Make one in the editor</a>.</p>') +
       '</div>' +
-      '<div><h2>2. Time per question</h2><div class="chips">' +
+      '<div><h2>3. Time per question</h2><div class="chips">' +
       KB.TIMERS.map((t) => '<button class="chip" type="button" data-timer="' + t + '" aria-pressed="' + (t === G.duration) + '">' + t + ' sec</button>').join('') +
       '</div></div>' +
       (todo ? '<p class="note">' + todo + ' unfinished question' + (todo === 1 ? '' : 's') + ' in this quiz will be skipped.</p>' : '') +
@@ -662,7 +700,7 @@
     cnt.textContent = '👥 ' + online + (online !== G.players.size ? ' / ' + G.players.size : '');
     cnt.title = online + ' connected, ' + G.players.size + ' joined';
     const qp = $('#q-pill');
-    const showQ = ['intro', 'question', 'boom', 'reveal', 'board'].includes(G.phase);
+    const showQ = ['intro', 'question', 'boom', 'reveal', 'board', 'pick', 'pickwait', 'crown'].includes(G.phase);
     qp.hidden = !showQ;
     if (showQ) qp.textContent = 'Q ' + (G.qi + 1) + ' / ' + G.questions.length;
     $('#mute').textContent = S.isMuted() ? '🔇' : '🔊';
@@ -686,6 +724,8 @@
         return renderBoard();
       case 'podium':
         return renderPodium();
+      default:
+        if (hooks.render) hooks.render(G.phase);
     }
   }
 
@@ -719,7 +759,8 @@
       '</div>' +
       '<div class="lobby-bottom">' +
       '<button class="btn ghost small" type="button" data-act="lock">' + (G.locked ? '🔒 Locked' : '🔓 Lock game') + '</button>' +
-      '<span class="grow muted">' + esc(G.quiz.title) + ' · ' + G.questions.length + ' questions · ' + G.duration + 's each. Click a name to remove that player.</span>' +
+      '<span class="grow muted" id="lobby-note">' + esc(G.quiz.title) + ' · ' + G.questions.length + ' questions · ' + G.duration + 's each. ' +
+      esc(hooks.lobbyHint || 'Click a name to remove that player.') + '</span>' +
       '<button class="btn big" type="button" data-act="start">Start game ▸</button>' +
       '</div>';
     renderPlayers();
@@ -727,6 +768,7 @@
 
   function renderPlayers(newPid) {
     updateTopbar();
+    if (hooks.onRoster) hooks.onRoster();
     const box = $('#players');
     if (!box || G.phase !== 'lobby') return;
     const ps = list();
@@ -735,12 +777,22 @@
           .map(
             (p) =>
               '<button class="player-chip' + (p.online ? '' : ' offline') + '" type="button" data-kick="' + esc(p.pid) + '" title="Remove ' + esc(p.name) + '"' +
-              (p.pid === newPid ? '' : ' style="animation:none"') + '><span class="av">' + esc(p.avatar) + '</span>' + esc(p.name) + '</button>'
+              (p.pid === newPid ? '' : ' style="animation:none"') + '><span class="av">' + esc(p.avatar) + '</span>' + esc(p.name) +
+              (hooks.chipBadge ? hooks.chipBadge(p) : '') + '</button>'
           )
           .join('')
       : '<div class="lobby-empty"><div class="spinner"></div>Waiting for players to join…</div>';
     const start = stage.querySelector('[data-act="start"]');
     if (start) start.disabled = !ps.length;
+    if (hooks.lobbyNote) {
+      const note = hooks.lobbyNote();
+      const el = $('#lobby-note');
+      if (el) {
+        el.innerHTML = note.html;
+        el.classList.toggle('warn', !note.ok);
+      }
+      if (start && !note.ok) start.disabled = true;
+    }
   }
 
   function imageHtml(q) {
@@ -801,12 +853,13 @@
     const answered = '<div class="answered"><b id="ans-count">' + G.answers.size + '</b><span>answers</span></div>';
     const endBtn = '<p><button class="btn ghost small" type="button" data-act="end-q">End now</button></p>';
     const timer = '<div class="timer' + (hasImg ? '' : ' hero') + '" id="timer">' + timerSvg() + '</div>';
+    const extras = hooks.sideExtras ? hooks.sideExtras() : '';
     // Granny on the left. The timer takes the middle, unless there's a picture.
     const mid =
       '<div class="side granny-side">' + KBFx.granny({ mood: 'happy', say: pick(LINES.go), cls: 'q-granny' }) + '</div>' +
       (hasImg
-        ? '<div class="q-image">' + imageHtml(q) + '</div><div class="side">' + timer + answered + endBtn + '</div>'
-        : '<div class="q-image">' + timer + '</div><div class="side">' + answered + endBtn + '</div>');
+        ? '<div class="q-image">' + imageHtml(q) + '</div><div class="side">' + extras + timer + answered + endBtn + '</div>'
+        : '<div class="q-image">' + timer + '</div><div class="side">' + extras + answered + endBtn + '</div>');
     stage.innerHTML = '<div class="q-text">' + esc(q.text) + '</div><div class="q-mid">' + mid + '</div>' + tilesHtml(q, false);
   }
 
@@ -887,7 +940,7 @@
   function renderReveal() {
     const q = cur();
     const max = Math.max(1, ...G.counts);
-    const right = list().filter((p) => p.last && p.last.q === G.qi && p.last.correct).length;
+    const right = contestants().filter((p) => p.last && p.last.q === G.qi && p.last.correct).length;
     const bars = q.answers
       .map(
         (a, i) =>
@@ -896,7 +949,7 @@
       )
       .join('');
     const last = G.qi >= G.questions.length - 1;
-    const total = G.players.size;
+    const total = contestants().length;
     let line = right === 1 ? 'Just one clever cookie!' : right + ' clever cookies!';
     let mood = 'happy';
     if (!right) {
@@ -910,7 +963,7 @@
       '<div class="q-mid">' +
       '<div class="side granny-side">' + KBFx.granny({ mood, say: line, cls: 'q-granny' }) + '</div>' +
       '<div class="bars">' + bars + '</div>' +
-      '<div class="side"><div class="answered"><b>' + right + '/' + total + '</b><span>got it right</span></div>' +
+      '<div class="side">' + (hooks.sideExtras ? hooks.sideExtras() : '') + '<div class="answered"><b>' + right + '/' + total + '</b><span>got it right</span></div>' +
       '<p><button class="btn big" type="button" data-act="next">' + (last ? 'Final results ▸' : 'Leaderboard ▸') + '</button></p></div>' +
       '</div>' +
       tilesHtml(q, true);
@@ -941,6 +994,7 @@
       '<div class="board-wrap">' + KBFx.granny({ mood: 'happy', say: line, cls: 'side-granny bubble-top' }) +
       '<div class="board"><h2>Leaderboard</h2>' + rows +
       (streaker ? '<p class="q-meta" style="text-align:center">🔥 ' + esc(streaker.name) + ' is on a ' + streaker.streak + '-answer streak!</p>' : '') +
+      (hooks.boardExtras ? hooks.boardExtras() : '') +
       '</div></div>' +
       '<div class="host-actions"><button class="btn big" type="button" data-act="next-q">Next question ▸</button></div>';
   }
@@ -954,21 +1008,29 @@
         '<span class="sc">' + KB.num(p.score) + ' pts</span><div class="block">' + p.rank + '</div></div>'
       );
     };
-    const options = G.quizzes
-      .filter((z) => z.questions.some((q) => !KB.questionProblem(q)))
-      .map((z) => '<option value="' + esc(z.id) + '"' + (z.id === G.quiz.id ? ' selected' : '') + '>' + esc(z.title) + '</option>')
-      .join('');
     stage.innerHTML =
       '<div class="podium-wrap"><h2>' + esc(G.quiz.title) + '</h2>' +
       '<div class="podium-row">' + KBFx.granny({ mood: 'shock', say: 'And the winner is\u2026', cls: 'side-granny bubble-top' }) +
       '<div class="podium">' + place(2) + place(1) + place(3) + '</div></div>' +
+      endActionsHtml(hooks.podiumActions ? hooks.podiumActions() : '') +
+      '</div>';
+  }
+
+  function endActionsHtml(first) {
+    const options = G.quizzes
+      .filter((z) => z.questions.some((q) => !KB.questionProblem(q)))
+      .map((z) => '<option value="' + esc(z.id) + '"' + (z.id === G.quiz.id ? ' selected' : '') + '>' + esc(z.title) + '</option>')
+      .join('');
+    return (
       '<div class="end-actions">' +
+      (first || '') +
       '<button class="btn ghost" type="button" data-act="results">All results</button>' +
       '<button class="btn ghost" type="button" data-act="csv">Download CSV</button>' +
       '<select id="again-quiz" aria-label="Quiz for the next round">' + options + '</select>' +
       '<button class="btn" type="button" data-act="again">Play again ▸</button>' +
       '<button class="btn ghost" type="button" data-act="end-game">End game</button>' +
-      '</div></div>';
+      '</div>'
+    );
   }
 
   function confetti() {
@@ -1020,9 +1082,16 @@
       G.duration = Number(timer.dataset.timer);
       return renderSetup();
     }
+    const modeBtn = e.target.closest('[data-mode]');
+    if (modeBtn) {
+      G.modeId = KB.getMode(modeBtn.dataset.mode).id;
+      KB.store.set('kaboom.mode', G.modeId);
+      return renderSetup();
+    }
     const kickBtn = e.target.closest('[data-kick]');
     if (kickBtn) {
       const p = G.players.get(kickBtn.dataset.kick);
+      if (p && hooks.chipActions) return playerMenu(p);
       if (p && confirm('Remove ' + p.name + ' from the game?')) kick(p.pid);
       return;
     }
@@ -1033,6 +1102,7 @@
         const quizObj = G.quizzes.find((z) => z.id === G.quizId);
         if (!loadQuiz(quizObj)) return;
         KB.store.set('kaboom.timer', G.duration);
+        useMode(G.modeId);
         startPeer();
         break;
       }
@@ -1068,8 +1138,39 @@
       case 'end-game':
         endGame();
         break;
+      default:
+        if (hooks.onAct) hooks.onAct(btn.dataset.act, btn);
     }
   });
+
+  // A mode with player roles: clicking a name in the lobby opens a small menu instead of "remove?".
+  function playerMenu(p) {
+    let d = $('#player-menu');
+    if (!d) {
+      d = document.createElement('dialog');
+      d.id = 'player-menu';
+      d.className = 'results player-menu';
+      document.body.appendChild(d);
+    }
+    d.innerHTML =
+      '<h2 class="display">' + esc(p.avatar + ' ' + p.name) + '</h2><div class="player-menu-acts">' +
+      hooks.chipActions(p).map((a) => '<button class="btn" type="button" data-menu="' + esc(a.act) + '">' + esc(a.label) + '</button>').join('') +
+      '<button class="btn danger" type="button" data-menu="kick">Remove from game</button>' +
+      '<button class="btn ghost" type="button" data-menu="cancel">Cancel</button></div>';
+    d.onclick = (e) => {
+      const b = e.target.closest('[data-menu]');
+      if (!b) return;
+      d.close();
+      const act = b.dataset.menu;
+      if (G.players.get(p.pid) !== p || act === 'cancel') return;
+      if (act === 'kick') {
+        if (confirm('Remove ' + p.name + ' from the game?')) kick(p.pid);
+      } else if (hooks.onChipAction) {
+        hooks.onChipAction(act, p);
+      }
+    };
+    d.showModal();
+  }
 
   function toggleMute() {
     S.unlock();
@@ -1113,6 +1214,35 @@
   window.addEventListener('storage', (e) => {
     if (e.key === KB.QUIZ_KEY && G.phase === 'setup') renderSetup();
   });
+
+  // What a mode can use (js/modes.js).
+  const H = {
+    G,
+    stage,
+    $,
+    esc,
+    S,
+    pick,
+    say,
+    granny,
+    send,
+    broadcast,
+    render,
+    renderPlayers,
+    toast,
+    later,
+    clearTimers,
+    cur,
+    list,
+    contestants,
+    viewFor,
+    startAnswering,
+    tilesHtml,
+    imageHtml,
+    safeImg,
+    confetti,
+    endActionsHtml,
+  };
 
   renderSetup();
 })();

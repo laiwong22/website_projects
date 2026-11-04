@@ -310,4 +310,58 @@
   };
 
   FX.BOOM_WORDS = ['BOOM!', 'POW!', 'BLAM!', 'KABOOM!', 'WHAM!', 'BANG!'];
+
+  // ---------- Grandma's Favorite: hearts and a smoke puff ----------
+  const HEART =
+    '<svg viewBox="0 0 32 30"><path d="M16,28 C6,20 1,14 1,8.5 C1,4.4 4.3,1.5 8.2,1.5 C11.4,1.5 14.2,3.6 16,6.6 C17.8,3.6 20.6,1.5 23.8,1.5 ' +
+    'C27.7,1.5 31,4.4 31,8.5 C31,14 26,20 16,28 Z" fill="#ff5f9e" stroke="' + OUT + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+    '<path d="M7,7 q2,-3 5,-2" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg>';
+
+  // A burst of cartoon hearts from a point. opts: { count, spread }
+  FX.hearts = function (at, opts) {
+    opts = opts || {};
+    const L = layer();
+    const n = FX.reduced ? 4 : opts.count || 16;
+    const spread = opts.spread || 260;
+    for (let i = 0; i < n; i++) {
+      const h = document.createElement('i');
+      h.className = 'fx-heart';
+      const a = Math.random() * Math.PI * 2;
+      const d = spread * (0.35 + Math.random() * 0.65);
+      h.style.left = at.x + 'px';
+      h.style.top = at.y + 'px';
+      h.style.width = (22 + Math.random() * 28).toFixed(0) + 'px';
+      h.style.setProperty('--dx', (Math.cos(a) * d).toFixed(0) + 'px');
+      h.style.setProperty('--dy', (Math.sin(a) * d * 0.7 - spread * 0.25).toFixed(0) + 'px');
+      h.style.setProperty('--rot', (Math.random() * 70 - 35).toFixed(0) + 'deg');
+      h.style.animationDelay = (Math.random() * 0.15).toFixed(2) + 's';
+      h.innerHTML = HEART;
+      L.appendChild(h);
+      setTimeout(() => h.remove(), 1700);
+    }
+  };
+
+  // A soft cartoon smoke puff (no fire), e.g. over the name of a Favorite who missed.
+  FX.puff = function (at, opts) {
+    opts = opts || {};
+    const size = opts.size || 160;
+    const L = layer();
+    const el = document.createElement('div');
+    el.className = 'fx-boom fx-puff';
+    el.style.left = at.x + 'px';
+    el.style.top = at.y + 'px';
+    el.style.width = el.style.height = size + 'px';
+    let html = '';
+    const n = FX.reduced ? 3 : 9;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+      const d = size * (0.12 + Math.random() * 0.22);
+      html +=
+        '<i class="fx-smoke" style="--dx:' + (Math.cos(a) * d).toFixed(0) + 'px;--dy:' + (Math.sin(a) * d * 0.6 - size * 0.25).toFixed(0) + 'px;--s:' +
+        (0.3 + Math.random() * 0.2).toFixed(2) + ';animation-delay:' + (Math.random() * 0.1).toFixed(2) + 's"></i>';
+    }
+    el.innerHTML = html;
+    L.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+  };
 })();

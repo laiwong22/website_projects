@@ -66,7 +66,7 @@
   }
 
   function setMood(mood) {
-    document.body.classList.remove('is-good', 'is-bad', 'is-none');
+    document.body.classList.remove('is-good', 'is-bad', 'is-none', 'is-gold');
     if (mood) document.body.classList.add('is-' + mood);
   }
 
@@ -79,7 +79,7 @@
       bar.hidden = false;
       bar.innerHTML =
         '<span class="who"><span>' + esc(P.avatar) + '</span><span>' + esc(P.name) + '</span></span>' +
-        '<span class="score">' + KB.num(P.view ? P.view.score : 0) + '</span>';
+        '<span class="score">' + (P.view && P.view.barRight != null ? esc(P.view.barRight) : KB.num(P.view ? P.view.score : 0)) + '</span>';
     } else {
       bar.hidden = true;
     }
@@ -513,8 +513,13 @@
       });
   }
 
+  // What a game mode's phone screens get to work with (see js/modes.js).
+  const screenKit = { show, granny, send, esc, $, toast };
+
   function renderView(v) {
     P.view = v;
+    const modeScreen = KB.phoneScreens && KB.phoneScreens[v.screen];
+    if (modeScreen) return modeScreen(v, screenKit);
     const place = v.rank ? 'You’re in ' + KB.ordinal(v.rank) + ' place' : '';
     switch (v.screen) {
       case 'lobby':
@@ -541,7 +546,7 @@
             (i + 1) + (v.labels ? '<small>' + esc(v.labels[i]) + '</small>' : '') + '</button>';
         }
         show(
-          '<div class="p-top"><span>Q' + (v.q + 1) + ' / ' + v.total + '</span><span>Pick ' + (v.n === 2 ? '1 or 2' : '1–' + v.n) + '</span></div>' +
+          '<div class="p-top"><span>' + (v.crown ? '👑 ' : '') + 'Q' + (v.q + 1) + ' / ' + v.total + '</span><span>Pick ' + (v.n === 2 ? '1 or 2' : '1–' + v.n) + '</span></div>' +
             '<div class="timebar"><i id="tb"></i></div>' +
             '<div class="qgrid n' + v.n + '">' + buttons + '</div>',
           { full: true, bar: true }
@@ -587,10 +592,12 @@
           mood = 'good';
           html =
             granny('happy', KBFx.pick(LINES.good)) + '<h2>Correct!</h2><div class="points">+' + KB.num(r.points) + '</div>' +
-            (r.streak > 1 ? '<p class="streak">🔥 ' + r.streak + ' in a row' + (r.bonus ? ' · +' + r.bonus + ' bonus' : '') + '</p>' : '');
+            (r.streak > 1 ? '<p class="streak">🔥 ' + r.streak + ' in a row' + (r.bonus ? ' · +' + r.bonus + ' bonus' : '') + '</p>' : '') +
+            (r.boost ? '<p class="fav-bonus">👑 Grandma\u2019s Favorite bonus: +' + KB.num(r.boost) + '</p>' : '');
         } else if (r && r.answered) {
           mood = 'bad';
-          html = granny('shock', KBFx.pick(LINES.bad)) + '<h2>Not quite!</h2><p class="streak">' + (r.lostStreak ? 'Streak lost. ' : '') + 'Get the next one.</p>';
+          html = granny('shock', KBFx.pick(LINES.bad)) + '<h2>Not quite!</h2><p class="streak">' + (r.lostStreak ? 'Streak lost. ' : '') + 'Get the next one.</p>' +
+            (r.favorite === 'miss' ? '<p class="fav-bonus">👑 You were Grandma\u2019s Favorite. She\u2019ll forgive you!</p>' : '');
         } else {
           mood = 'none';
           html =
@@ -622,6 +629,7 @@
             '<h2>' + (medal ? medal + ' ' : '') + 'You finished ' + KB.ordinal(v.rank) + '!</h2>' +
             '<div class="points">' + KB.num(v.score) + ' pts</div>' +
             '<p class="standing">' + v.correct + ' of ' + v.total + ' correct</p>' +
+            (v.verdict ? '<p class="fav-bonus">👵 ' + esc(v.verdict) + '</p>' : '') +
             '<p class="muted">Stay here if the host starts another round.</p>' +
             '<button class="btn ghost" id="leave">Leave game</button>',
           { bar: true, mood: v.rank <= 3 ? 'good' : '' }

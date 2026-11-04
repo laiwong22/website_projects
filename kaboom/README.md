@@ -18,7 +18,8 @@ default branch (GitHub Pages already publishes this repo).
 
 ## Running a game
 
-1. Open **host.html** on the big-screen computer, pick a quiz and the time per question, and click **Open lobby**.
+1. Open **host.html** on the big-screen computer, pick a game mode (see [Game modes](#game-modes)), a quiz and the time
+   per question, and click **Open lobby**.
 2. Players go to the address on screen and type the 6-digit PIN, or scan the QR code. Their names pop up in the lobby.
    Click a name to remove someone, or **Lock game** to stop new people joining.
 3. Click **Start game** (or press Space). For each question:
@@ -35,6 +36,45 @@ Keyboard on the host screen: **Space / Enter / →** to go to the next step, **M
 
 Keep the host tab open and in front for the whole game. That tab *is* the game server, so closing or
 reloading it ends the game for everyone.
+
+## Game modes
+
+Pick the mode on the host's start screen. **Classic** is the game described above and never changes.
+
+### Grandma's Favorite
+
+One person, the guest of honor who wrote the quiz, plays as **Grandma**. She doesn't answer questions.
+Before each question she picks one player as her **Favorite**. If the Favorite gets it right, their points
+for that question are multiplied by 1.25. Grandma has her own goal: her Favorites have to beat the room.
+
+1. **Choosing Grandma:** in the lobby, click a player and choose **Make Grandma**. Her phone becomes the
+   Grandma controller, and she's left out of the leaderboard and the podium. You need at least 2 other players.
+2. **Pick Me (10 seconds):** the big screen shows the question and its answers, locked. Everyone lobbies
+   Grandma out loud while she picks on her phone. **Lock in** ends the window early; otherwise whoever she has
+   selected locks when time runs out. If she hasn't picked, the game waits, and the host can use
+   **🎲 Random pick** or **Pick for Grandma** (handy if her phone dies).
+3. **Crown:** a 👑 lands on the Favorite's name, and it stays there while everyone answers like in Classic.
+4. **Reveal:** the usual Classic reveal, then the **Favorite Spotlight**: hearts and "GRANDMA'S FAVORITE! 💖"
+   for a right answer, or a head shake and a smoke puff for a miss. Press **Skip** or Space to cut it short.
+5. **Leaderboard:** the normal one, plus Grandma's tally, e.g. `Grandma's picks: 5/7 (71%) vs. Room: 61%`.
+6. **End:** the podium, then **Grandma's Verdict** (did her picks beat the room's correct rate?), then the
+   **Favorites recap** with every pick and the most trusted player.
+
+Pick rules (Grandma's phone grays out anyone she can't pick, and says why):
+- Nobody can be the Favorite two rounds in a row.
+- Each player can be picked at most `ceil(questions ÷ players)` times (players counted at the start).
+- If nobody is left, the back-to-back rule is dropped first, then the limit. Late joiners can be picked too.
+
+How Grandma's score works:
+- **Her hit rate** is her Favorites' right answers divided by her picks.
+- **The room's rate** is every right answer divided by every answer expected; a missing answer counts as wrong.
+- **A Favorite who runs out of time** counts as a miss.
+- **A Favorite who disconnects** before the reveal voids that pick: it doesn't count either way, and there's no bonus.
+- **Grandma wins** only if her rate is higher. A tie goes to the room.
+
+Settings are in one place, at the top of `js/modes/favorite-rules.js`: `LOBBY_SECONDS` (10),
+`FAVORITE_MULTIPLIER` (1.25), `SPOTLIGHT_MS` (2000), `EXTRA_PICK_ALLOWANCE` (0), `GRANDMA_WINS_TIES` (false).
+The crown fanfare, sparkle and sigh are synthesized like the other sounds; there are no audio files.
 
 ## Scoring
 
@@ -122,7 +162,11 @@ kaboom/
   js/play.js      player logic
   js/host.js      game server and big-screen logic
   js/edit.js      editor logic
-  js/fx.js        Granny Boom, rockets and explosions (cartoon SVG + CSS animation)
+  js/fx.js        Granny Boom, rockets, explosions, hearts and smoke (cartoon SVG + CSS animation)
   js/sound.js     synthesized music and sound effects
+  js/modes.js     game mode registry (Classic, and the hooks a mode can use)
+  js/modes/       Grandma's Favorite: favorite-rules.js (rules + settings), favorite.js (big screen),
+                  favorite-phone.js (phone screens)
+  tests/          unit tests, end-to-end tests and the manual checklist (see tests/README.md)
   vendor/         PeerJS 1.5.5 and qrcode-generator 1.4.4 (MIT, see vendor/LICENSES.md)
 ```

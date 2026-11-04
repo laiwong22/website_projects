@@ -189,6 +189,26 @@ draws a comic explosion. On phones, tapping an answer fires a rocket at that but
 views wait in `P.pendingView` until it finishes). On the host, `blastWrong()` fires at each wrong tile when time's up.
 Her lines live in `LINES` in `host.js` and `play.js`.
 
+**Game modes** (`js/modes.js`): a mode is `{id, name, icon, tagline, create(H)}`. On Open lobby / Play again
+the host calls `create(H)` with its helpers (`H` at the bottom of `host.js`) and gets optional hooks, listed
+at the top of `modes.js`: `isContestant`, lobby `chipActions`/`onChipAction`/`lobbyNote`, `canStart`, `onStart`,
+`beginQuestion` (take over before answering, then call `H.startAnswering(true)`), `adjustPoints`, `afterScore`,
+`afterReveal`, `sideExtras`, `boardExtras`, `podiumActions`, `onPrimary`, `onAct`, `onMessage`, `onRoster`, `render(phase)`
+and `view(p, v)`. Phone screens for a mode register in `KB.phoneScreens[name] = (view, kit) => …`.
+**Classic has no hooks**, so the host runs its original code; keep it that way (the user falls back on it).
+
+**Grandma's Favorite** (`js/modes/`): `favorite-rules.js` holds the pure rules and the `CONFIG` (works in the browser as
+`KBFavRules` and in Node for tests); `favorite.js` is the host side; `favorite-phone.js` the phone screens. The Grandma is
+the player with `p.role === 'grandma'` (set from the lobby menu); she isn't a contestant. Players get a public `tag`
+(pickers use it; the `pid` stays private). Extra phases: `pick` → `pickwait` → `crown` → Classic `question`/`reveal`
+(+ the spotlight overlay) → `board`; after `podium`: `verdict` → `recap`. Grandma's phone sends `fav-pick {tag}` and
+`fav-lock {tag}`; phone screens are `fav-pickme`, `fav-crowned`, `fav-picked`, `gm-lobby`, `gm-pick`, `gm-wait`,
+`gm-result`, `gm-end`.
+
+**Tests:** `node --test kaboom/tests/*.test.js` (rules, no setup). End-to-end Playwright games live in
+`kaboom/tests/e2e/*.e2e.js` (Classic, reconnect, Grandma's Favorite); `kaboom/tests/README.md` explains how to run them and
+has the manual checklist. Rerun `classic.e2e.js` after any host change to make sure Classic still plays the same.
+
 **Conventions**
 - Keep it dependency-free apart from `kaboom/vendor/` (PeerJS 1.5.5 and qrcode-generator 1.4.4, MIT).
   Don't switch to CDN copies.
