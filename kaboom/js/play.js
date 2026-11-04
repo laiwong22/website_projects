@@ -23,11 +23,39 @@
     retries: 0,
     retryTimer: null,
     gaveUp: false,
+    paused: false, // another tab on this phone took over this player
+    resumeTries: 0,
+    connectingSince: 0,
     lastSeen: 0,
     view: null,
   };
 
   const fmtPin = (pin) => pin.slice(0, 3) + ' ' + pin.slice(3);
+
+  // Who this phone is in the current game. Saved for this tab AND for the whole browser, so reopening
+  // the link, rescanning the QR code or a reloaded tab all land back in the same player.
+  const SESSION_KEY = 'kaboom.player';
+  const SESSION_TTL = 4 * 60 * 60 * 1000;
+  function saveSession() {
+    const v = { pin: P.pin, pid: P.pid, name: P.name, avatar: P.avatar, at: Date.now() };
+    KB.session.set(SESSION_KEY, v);
+    KB.store.set(SESSION_KEY, v);
+  }
+  function clearSession() {
+    KB.session.remove(SESSION_KEY);
+    KB.store.remove(SESSION_KEY);
+  }
+  function loadSession() {
+    const v = KB.session.get(SESSION_KEY, null) || KB.store.get(SESSION_KEY, null);
+    if (!v || !v.pin || !v.pid || (v.at && Date.now() - v.at > SESSION_TTL)) return null;
+    return v;
+  }
+  function adopt(v) {
+    P.pin = v.pin;
+    P.pid = v.pid;
+    P.name = KB.cleanName(v.name) || P.name;
+    if (KB.AVATARS.includes(v.avatar)) P.avatar = v.avatar;
+  }
 
   function toast(msg) {
     const t = $('#toast');
@@ -38,7 +66,7 @@
   }
 
   function setMood(mood) {
-    document.body.classList.remove('is-good', 'is-bad', 'is-none');
+    document.body.classList.remove('is-good', 'is-bad', 'is-none', 'is-gold');
     if (mood) document.body.classList.add('is-' + mood);
   }
 
@@ -51,7 +79,7 @@
       bar.hidden = false;
       bar.innerHTML =
         '<span class="who"><span>' + esc(P.avatar) + '</span><span>' + esc(P.name) + '</span></span>' +
-        '<span class="score">' + KB.num(P.view ? P.view.score : 0) + '</span>';
+        '<span class="score">' + (P.view && P.view.barRight != null ? esc(P.view.barRight) : KB.num(P.view ? P.view.score : 0)) + '</span>';
     } else {
       bar.hidden = true;
     }
@@ -81,7 +109,16 @@
         return;
       }
       P.left = false;
-      connect(digits, false);
+      P.paused = false;
+      const saved = loadSession();
+      if (saved && saved.pin === digits) {
+        adopt(saved);
+        P.resuming = true;
+        P.resumeTries = 0;
+        connect(digits, true);
+      } else {
+        connect(digits, false);
+      }
     });
     if (!('ontouchstart' in window)) input.focus();
   }
@@ -177,12 +214,28 @@
     });
   }
 
+  function dropPeer() {
+    const old = P.peer;
+    P.peer = null;
+    if (old) {
+      try {
+        old.destroy();
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
   function connect(pin, autoJoin) {
     const attempt = ++P.attempt;
+    const rejoin = autoJoin && (P.joined || P.resuming);
     closeConn();
     clearTimeout(P.retryTimer);
     P.retryTimer = null;
     P.pin = pin;
+    P.connectingSince = Date.now();
+    // After the phone slept, the old relay socket can look open but be dead. Never reuse it to rejoin.
+    if (rejoin) dropPeer();
     if (!P.joined) showConnecting(autoJoin ? 'Rejoining the game…' : 'Finding game ' + fmtPin(pin) + '…');
     getPeer().then(
       (peer) => {
@@ -196,10 +249,11 @@
         P.conn = conn;
         const timer = setTimeout(() => {
           if (attempt === P.attempt && !conn.open) failConnect('timeout');
-        }, 15000);
+        }, rejoin ? 8000 : 15000);
         conn.on('open', () => {
           clearTimeout(timer);
           if (attempt !== P.attempt) return;
+          P.connectingSince = 0;
           P.lastSeen = Date.now();
           if (autoJoin) sendJoin();
           else showName('');
@@ -221,14 +275,27 @@
   }
 
   function failConnect(type) {
-    if (P.left) return;
+    if (P.left || P.paused) return;
+    P.connectingSince = 0;
     if (P.joined) return scheduleRetry();
     P.attempt++;
     closeConn();
     if (P.resuming) {
+      if (type !== 'peer-unavailable' && P.resumeTries < 3) {
+        P.resumeTries++;
+        showConnecting('Rejoining the game…');
+        P.retryTimer = setTimeout(() => {
+          P.retryTimer = null;
+          connect(P.pin, true);
+        }, 1500);
+        return;
+      }
       P.resuming = false;
-      KB.session.remove('kaboom.player');
-      return showPin('That game is over, or the host closed it.', '');
+      if (type === 'peer-unavailable') {
+        clearSession();
+        return showPin('That game is over, or the host closed it.', '');
+      }
+      return showPin("Couldn't reach the game. Check your internet, then tap Enter to rejoin.", P.pin);
     }
     const messages = {
       'peer-unavailable': 'No game found with PIN ' + fmtPin(P.pin) + '. Check the number on the big screen.',
@@ -268,7 +335,8 @@
         overlay.hidden = true;
         if (msg.view.name) P.name = msg.view.name;
         if (msg.view.avatar) P.avatar = msg.view.avatar;
-        KB.session.set('kaboom.player', { pin: P.pin, pid: P.pid, name: P.name, avatar: P.avatar });
+        P.resumeTries = 0;
+        saveSession();
         KB.keepAwake();
         // Let the rocket finish exploding before switching screens.
         if (P.firing) P.pendingView = msg.view;
@@ -291,20 +359,65 @@
         leave();
         showMessage('👋', 'Game closed', 'The host ended the game. Thanks for playing!');
         break;
+      case 'replaced':
+        standDown();
+        break;
     }
   }
 
+  // This player was picked up by another tab or window on this phone: step aside instead of
+  // fighting over the connection, and offer to take it back.
+  function standDown() {
+    P.paused = true;
+    P.attempt++;
+    P.firing = false;
+    P.pendingView = null;
+    clearTimeout(P.retryTimer);
+    P.retryTimer = null;
+    overlay.hidden = true;
+    closeConn();
+    show(
+      granny('shock', 'Two of you, dear?') + '<h2>Playing in another tab</h2>' +
+        '<p class="standing">Kaboom is open somewhere else on this phone, so this tab stepped aside.</p>' +
+        '<button class="btn big" id="here">Play here instead</button>',
+      { bar: true }
+    );
+    $('#here').addEventListener('click', () => {
+      P.paused = false;
+      reconnectNow();
+    });
+  }
+
+  function showReconnecting() {
+    overlay.hidden = false;
+    overlay.innerHTML =
+      '<div class="spinner" aria-hidden="true"></div><h2 class="display">Reconnecting…</h2><p class="muted">Hang tight, getting you back in the game.</p>';
+  }
+
+  // Back from another app, the lock screen or a network change: rejoin right away.
+  function reconnectNow() {
+    if (!P.joined || P.left || P.paused) return;
+    P.retries = 0;
+    P.gaveUp = false;
+    clearTimeout(P.retryTimer);
+    P.retryTimer = null;
+    showReconnecting();
+    connect(P.pin, true);
+  }
+
+  const looksDead = () => !P.conn || !P.conn.open || Date.now() - P.lastSeen > 5000;
+  const connectingNow = () => P.connectingSince && Date.now() - P.connectingSince < 3000;
+
   function onLost() {
-    if (P.left) return;
+    if (P.left || P.paused) return;
     closeConn();
     if (!P.joined) return failConnect('timeout');
-    overlay.hidden = false;
-    overlay.innerHTML = '<div class="spinner" aria-hidden="true"></div><h2 class="display">Reconnecting…</h2><p class="muted">Hang tight, getting you back in the game.</p>';
+    showReconnecting();
     scheduleRetry();
   }
 
   function scheduleRetry() {
-    if (P.left || P.retryTimer) return;
+    if (P.left || P.paused || P.retryTimer) return;
     overlay.hidden = false;
     if (P.retries >= 30) {
       P.gaveUp = true;
@@ -312,12 +425,7 @@
         '<div class="result-icon">📡</div><h2 class="display">Lost the game</h2>' +
         '<p class="muted">We can’t reach the host. Their screen may have closed.</p>' +
         '<button class="btn big" id="retry">Try again</button><button class="btn ghost" id="quit">Leave game</button>';
-      $('#retry').onclick = () => {
-        P.retries = 0;
-        P.gaveUp = false;
-        overlay.innerHTML = '<div class="spinner"></div><h2 class="display">Reconnecting…</h2>';
-        connect(P.pin, true);
-      };
+      $('#retry').onclick = () => reconnectNow();
       $('#quit').onclick = () => {
         leave();
         overlay.hidden = true;
@@ -335,6 +443,7 @@
 
   function leave() {
     P.left = true;
+    P.paused = false;
     P.firing = false;
     P.pendingView = null;
     P.gaveUp = false;
@@ -347,24 +456,20 @@
     P.retryTimer = null;
     overlay.hidden = true;
     closeConn();
-    KB.session.remove('kaboom.player');
+    clearSession();
   }
 
   // Notice a dead connection (phone slept, Wi-Fi switched) and reconnect.
   setInterval(() => {
-    if (!P.joined || P.left || P.retryTimer || P.gaveUp) return;
-    if (!P.conn || (P.conn.open && Date.now() - P.lastSeen > 14000)) onLost();
+    if (!P.joined || P.left || P.paused || P.retryTimer || P.gaveUp || connectingNow()) return;
+    if (!P.conn || (P.conn.open && Date.now() - P.lastSeen > 10000)) onLost();
   }, 3000);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible' || !P.joined || P.left) return;
-    if (!P.conn || !P.conn.open || Date.now() - P.lastSeen > 6000) {
-      P.retries = 0;
-      P.gaveUp = false;
-      clearTimeout(P.retryTimer);
-      P.retryTimer = null;
-      onLost();
-    }
+    if (document.visibilityState === 'visible' && looksDead() && !connectingNow()) reconnectNow();
+  });
+  window.addEventListener('online', () => {
+    if (looksDead()) reconnectNow();
   });
 
   // ---------- game screens ----------
@@ -408,8 +513,13 @@
       });
   }
 
+  // What a game mode's phone screens get to work with (see js/modes.js).
+  const screenKit = { show, granny, send, esc, $, toast };
+
   function renderView(v) {
     P.view = v;
+    const modeScreen = KB.phoneScreens && KB.phoneScreens[v.screen];
+    if (modeScreen) return modeScreen(v, screenKit);
     const place = v.rank ? 'You’re in ' + KB.ordinal(v.rank) + ' place' : '';
     switch (v.screen) {
       case 'lobby':
@@ -436,7 +546,7 @@
             (i + 1) + (v.labels ? '<small>' + esc(v.labels[i]) + '</small>' : '') + '</button>';
         }
         show(
-          '<div class="p-top"><span>Q' + (v.q + 1) + ' / ' + v.total + '</span><span>Pick ' + (v.n === 2 ? '1 or 2' : '1–' + v.n) + '</span></div>' +
+          '<div class="p-top"><span>' + (v.crown ? '👑 ' : '') + 'Q' + (v.q + 1) + ' / ' + v.total + '</span><span>Pick ' + (v.n === 2 ? '1 or 2' : '1–' + v.n) + '</span></div>' +
             '<div class="timebar"><i id="tb"></i></div>' +
             '<div class="qgrid n' + v.n + '">' + buttons + '</div>',
           { full: true, bar: true }
@@ -482,10 +592,12 @@
           mood = 'good';
           html =
             granny('happy', KBFx.pick(LINES.good)) + '<h2>Correct!</h2><div class="points">+' + KB.num(r.points) + '</div>' +
-            (r.streak > 1 ? '<p class="streak">🔥 ' + r.streak + ' in a row' + (r.bonus ? ' · +' + r.bonus + ' bonus' : '') + '</p>' : '');
+            (r.streak > 1 ? '<p class="streak">🔥 ' + r.streak + ' in a row' + (r.bonus ? ' · +' + r.bonus + ' bonus' : '') + '</p>' : '') +
+            (r.boost ? '<p class="fav-bonus">👑 Grandma\u2019s Favorite bonus: +' + KB.num(r.boost) + '</p>' : '');
         } else if (r && r.answered) {
           mood = 'bad';
-          html = granny('shock', KBFx.pick(LINES.bad)) + '<h2>Not quite!</h2><p class="streak">' + (r.lostStreak ? 'Streak lost. ' : '') + 'Get the next one.</p>';
+          html = granny('shock', KBFx.pick(LINES.bad)) + '<h2>Not quite!</h2><p class="streak">' + (r.lostStreak ? 'Streak lost. ' : '') + 'Get the next one.</p>' +
+            (r.favorite === 'miss' ? '<p class="fav-bonus">👑 You were Grandma\u2019s Favorite. She\u2019ll forgive you!</p>' : '');
         } else {
           mood = 'none';
           html =
@@ -517,6 +629,7 @@
             '<h2>' + (medal ? medal + ' ' : '') + 'You finished ' + KB.ordinal(v.rank) + '!</h2>' +
             '<div class="points">' + KB.num(v.score) + ' pts</div>' +
             '<p class="standing">' + v.correct + ' of ' + v.total + ' correct</p>' +
+            (v.verdict ? '<p class="fav-bonus">👵 ' + esc(v.verdict) + '</p>' : '') +
             '<p class="muted">Stay here if the host starts another round.</p>' +
             '<button class="btn ghost" id="leave">Leave game</button>',
           { bar: true, mood: v.rank <= 3 ? 'good' : '' }
@@ -534,13 +647,11 @@
   }
 
   // ---------- start ----------
-  const saved = KB.session.get('kaboom.player', null);
+  const saved = loadSession();
   const urlPin = (KB.params.get('pin') || '').replace(/\D/g, '');
-  if (saved && saved.pin && saved.pid && (!urlPin || urlPin === saved.pin)) {
-    // Page reloaded mid-game: pick up where we left off.
-    P.pid = saved.pid;
-    P.name = KB.cleanName(saved.name) || P.name;
-    if (KB.AVATARS.includes(saved.avatar)) P.avatar = saved.avatar;
+  if (saved && (!urlPin || urlPin === saved.pin)) {
+    // Reloaded, reopened the link or rescanned the QR code mid-game: pick up where we left off.
+    adopt(saved);
     P.resuming = true;
     connect(saved.pin, true);
   } else if (urlPin.length === 6) {
@@ -554,9 +665,6 @@
   });
   // Coming back from the browser's back/forward cache: the connection was closed on pagehide.
   window.addEventListener('pageshow', (e) => {
-    if (e.persisted && P.joined && !P.left) {
-      P.retries = 0;
-      onLost();
-    }
+    if (e.persisted) reconnectNow();
   });
 })();

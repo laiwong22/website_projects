@@ -20,7 +20,7 @@
     t.textContent = msg;
     t.hidden = false;
     clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => (t.hidden = true), 3200);
+    toast.timer = setTimeout(() => (t.hidden = true), Math.max(3200, msg.length * 70));
   }
 
   function setState(text, bad) {
@@ -30,16 +30,25 @@
     el.classList.toggle('bad', !!bad);
   }
 
+  function saveNow() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    const err = KB.saveQuizzes(quizzes);
+    if (err) setState('Not saved: this browser is out of space. Use smaller images or image links.', true);
+    else setState('Saved ✓');
+    renderList();
+  }
+
+  // Typing saves a moment later; leaving the page (or clicking Host) saves anything still pending.
   function save() {
     clearTimeout(saveTimer);
     setState('Saving…');
-    saveTimer = setTimeout(() => {
-      const err = KB.saveQuizzes(quizzes);
-      if (err) setState('Not saved: this browser is out of space. Use smaller images or image links.', true);
-      else setState('Saved ✓');
-      renderList();
-    }, 350);
+    saveTimer = setTimeout(saveNow, 350);
   }
+  const flushSave = () => saveTimer && saveNow();
+  window.addEventListener('pagehide', flushSave);
+  window.addEventListener('beforeunload', flushSave);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushSave());
 
   function touch() {
     const z = current();
@@ -189,31 +198,67 @@
     KB.download(name + '.kaboom.json', JSON.stringify({ kaboom: 1, quizzes: list }, null, 2));
   }
 
+  // Read a quiz file, forgiving the usual hand-editing slips: curly quotes from phones or Word,
+  // and a comma after the last item in a list.
+  function parseQuizFile(text) {
+    text = String(text).replace(/^﻿/, '');
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      const fixed = text.replace(/[“”„‟]/g, '"').replace(/,(\s*[\]}])/g, '$1');
+      try {
+        return JSON.parse(fixed);
+      } catch (e2) {
+        const m = /line (\d+)/.exec(err.message) || /position (\d+)/.exec(err.message);
+        let line = 0;
+        if (m) line = /line/.test(m[0]) ? Number(m[1]) : text.slice(0, Number(m[1])).split('\n').length;
+        throw new Error(line ? 'near line ' + line : '');
+      }
+    }
+  }
+
   $('#import-file').addEventListener('change', async (e) => {
     const files = [...e.target.files];
     e.target.value = '';
     let added = 0;
+    let unfinished = 0;
+    const problems = [];
     for (const f of files) {
+      let data;
       try {
-        const data = JSON.parse(await f.text());
-        const arr = Array.isArray(data) ? data : Array.isArray(data.quizzes) ? data.quizzes : [data];
-        for (const raw of arr) {
-          if (!raw || !Array.isArray(raw.questions)) continue;
-          const z = KB.normalizeQuiz(raw);
-          if (quizzes.some((o) => o.id === z.id)) z.id = KB.uid('z-');
-          quizzes.unshift(z);
-          currentId = z.id;
-          added++;
-        }
+        data = parseQuizFile(await f.text());
       } catch (err) {
-        /* not JSON; reported below */
+        problems.push('“' + f.name + '” has a typo' + (err.message ? ' ' + err.message : '') + ' (usually a missing comma, quote or bracket).');
+        continue;
       }
+      const arr = Array.isArray(data) ? data : data && Array.isArray(data.quizzes) ? data.quizzes : [data];
+      let found = 0;
+      for (const raw of arr) {
+        if (!raw || typeof raw !== 'object' || !Array.isArray(raw.questions)) continue;
+        const z = KB.normalizeQuiz(raw);
+        if (quizzes.some((o) => o.id === z.id)) z.id = KB.uid('z-');
+        z.questions.forEach((q) => (q.id = KB.uid('q-'))); // ids in hand-made files are often copy-pasted
+        unfinished += z.questions.filter((q) => KB.questionProblem(q)).length;
+        quizzes.unshift(z);
+        currentId = z.id;
+        added++;
+        found++;
+      }
+      if (!found) problems.push('“' + f.name + '” has no quizzes in it (each quiz needs a "questions" list).');
     }
-    if (!added) return toast("Couldn't find any Kaboom quizzes in that file.");
-    history.replaceState(null, '', '#' + encodeURIComponent(currentId));
-    renderAll();
-    save();
-    toast('Imported ' + added + (added === 1 ? ' quiz' : ' quizzes') + '.');
+    if (added) {
+      history.replaceState(null, '', '#' + encodeURIComponent(currentId));
+      renderAll();
+      saveNow();
+    }
+    const msg = [];
+    if (added) {
+      msg.push(
+        'Imported ' + added + (added === 1 ? ' quiz.' : ' quizzes.') +
+          (unfinished ? ' ' + unfinished + (unfinished === 1 ? ' question needs' : ' questions need') + ' fixing (marked in red).' : '')
+      );
+    }
+    toast(msg.concat(problems).join(' ') || "Couldn't find any Kaboom quizzes in that file.");
   });
 
   // ---------- editing ----------

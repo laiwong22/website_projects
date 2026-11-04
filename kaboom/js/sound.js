@@ -204,6 +204,37 @@
     tone(sfxBus, { start: t, freq: 95, slideTo: 35, type: 'sine', dur: 0.45, vol: 0.6 });
   });
 
+  // ---------- Grandma's Favorite ----------
+  // The crown: a short royal fanfare with a twinkle.
+  S.crown = sfx(() => {
+    const t = ctx.currentTime;
+    [
+      [72, 0, 0.12],
+      [76, 0.11, 0.12],
+      [79, 0.22, 0.12],
+      [84, 0.33, 0.45],
+    ].forEach(([m, at, d]) => {
+      tone(sfxBus, { start: t + at, freq: freq(m), type: 'square', dur: d + 0.08, vol: 0.11, hold: d * 0.7 });
+      tone(sfxBus, { start: t + at, freq: freq(m - 12), type: 'triangle', dur: d + 0.08, vol: 0.18, hold: d * 0.7 });
+    });
+    for (let i = 0; i < 6; i++) tone(sfxBus, { start: t + 0.42 + i * 0.05, freq: freq(96 + (i % 3) * 4), type: 'sine', dur: 0.12, vol: 0.06 });
+  });
+
+  // A cheerful sparkle: quick rising chimes and a shimmer.
+  S.sparkle = sfx(() => {
+    const t = ctx.currentTime;
+    [84, 88, 91, 96, 100, 103].forEach((m, i) => tone(sfxBus, { start: t + i * 0.06, freq: freq(m), type: 'triangle', dur: 0.28, vol: 0.12 }));
+    noise(sfxBus, { start: t, dur: 0.6, vol: 0.06, freq: 9000, attack: 0.05 });
+  });
+
+  // A disappointed sigh: a soft, falling "aww" (playful, not harsh).
+  S.sigh = sfx(() => {
+    const t = ctx.currentTime;
+    tone(sfxBus, { start: t, freq: 330, slideTo: 196, type: 'triangle', dur: 0.9, vol: 0.22, attack: 0.08, hold: 0.5 });
+    tone(sfxBus, { start: t + 0.02, freq: 415, slideTo: 247, type: 'sine', dur: 0.85, vol: 0.08, attack: 0.1, hold: 0.45 });
+    noise(sfxBus, { start: t, dur: 0.8, vol: 0.05, filter: 'lowpass', freq: 1200, freqTo: 400, attack: 0.15 });
+  });
+
   S.correct = sfx(() => {
     const t = ctx.currentTime;
     [72, 76, 79, 84].forEach((m, i) => tone(sfxBus, { start: t + i * 0.08, freq: freq(m), type: 'triangle', dur: 0.35, vol: 0.2 }));

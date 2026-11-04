@@ -154,15 +154,29 @@ tab ends the game. `?peer=host:port` on any page points it at a self-hosted Peer
 **Messages** (all JSON objects with a `t` field):
 - phone → host: `join {pid, name, avatar}` (also used to reconnect with the same `pid`), `answer {q, choice}`, `pong`
 - host → phone: `view {view}` (the phone renders `view.screen`: `lobby`, `intro`, `question`, `answered`,
-  `wait`, `result`, `standing`, `end`), `reject {reason, msg}`, `kicked`, `closed`, `ping` (every 4s)
+  `wait`, `result`, `standing`, `end`), `reject {reason, msg}`, `kicked`, `closed`, `replaced` (another tab
+  took over this player; the phone stops and offers "Play here instead"), `ping` (every 4s)
 - The host builds each phone's view in `viewFor()` and re-sends it on every phase change. The phone keeps no
   game state of its own, so a reconnect just gets the current view.
+
+**Leaving and coming back** (phones switching apps, locking, reopening the link):
+- The phone saves `{pin, pid, name, avatar}` under `kaboom.player` in sessionStorage *and* localStorage
+  (4-hour expiry), so a reload, a new tab, a rescanned QR code or retyping the PIN all rejoin as the same player.
+- Every rejoin creates a fresh PeerJS peer (a socket that slept in the background can look open but be dead),
+  with an 8s timeout; it reconnects at once on `visibilitychange`, `online` and `pageshow`.
+- Host `handleJoin`: a known `pid` reattaches (`attach()`, which sends `replaced` to any older connection).
+  An unknown `pid` with an existing nickname takes that player over (`rekey()`, keeping the score) if the old
+  connection is gone or doesn't answer a ping within 2.5s; otherwise it's refused as "already playing".
+  Taking over is allowed even when the game is locked.
 
 **Quizzes** live only in the browser's `localStorage["kaboom.quizzes"]` (seeded with the sample
 "Kaboom warm-up"), so there are no quiz files in the repo. Format (see `KB.normalizeQuestion` in `js/shared.js`):
 `{id, title, updated, questions: [{id, type: "quiz"|"tf", text, image, answers: [4 strings], correct: [indexes]}]}`.
-Export/import uses `{kaboom: 1, quizzes: [...]}` JSON files. Blank answers are dropped at play time, so
-the options are always numbered 1..n.
+Export/import uses `{kaboom: 1, quizzes: [...]}` JSON files; `kaboom/quiz-template.json` is the hand-editing
+template (keep it valid and in sync with the format, and see "Quiz files" in `kaboom/README.md`). Import also
+accepts a bare quiz or a list of quizzes, retries after fixing curly quotes and trailing commas, gives every
+imported question a fresh id, and accepts `correct` as a single number. Blank answers are dropped at play time,
+so the options are always numbered 1..n.
 
 **Scoring** (`scoreQuestion` in `host.js`): a right answer earns `round(1000 * (1 - t/T/2))`, plus a streak
 bonus of `min((streak-1)*100, 500)`. On a multi-answer question any right option counts.
@@ -174,6 +188,26 @@ The host character is **Granny Boom**, an original cartoon grandma with a bazook
 draws a comic explosion. On phones, tapping an answer fires a rocket at that button (`fireAt` in `play.js`; incoming
 views wait in `P.pendingView` until it finishes). On the host, `blastWrong()` fires at each wrong tile when time's up.
 Her lines live in `LINES` in `host.js` and `play.js`.
+
+**Game modes** (`js/modes.js`): a mode is `{id, name, icon, tagline, create(H)}`. On Open lobby / Play again
+the host calls `create(H)` with its helpers (`H` at the bottom of `host.js`) and gets optional hooks, listed
+at the top of `modes.js`: `isContestant`, lobby `chipActions`/`onChipAction`/`lobbyNote`, `canStart`, `onStart`,
+`beginQuestion` (take over before answering, then call `H.startAnswering(true)`), `adjustPoints`, `afterScore`,
+`afterReveal`, `sideExtras`, `boardExtras`, `podiumActions`, `onPrimary`, `onAct`, `onMessage`, `onRoster`, `render(phase)`
+and `view(p, v)`. Phone screens for a mode register in `KB.phoneScreens[name] = (view, kit) => …`.
+**Classic has no hooks**, so the host runs its original code; keep it that way (the user falls back on it).
+
+**Grandma's Favorite** (`js/modes/`): `favorite-rules.js` holds the pure rules and the `CONFIG` (works in the browser as
+`KBFavRules` and in Node for tests); `favorite.js` is the host side; `favorite-phone.js` the phone screens. The Grandma is
+the player with `p.role === 'grandma'` (set from the lobby menu); she isn't a contestant. Players get a public `tag`
+(pickers use it; the `pid` stays private). Extra phases: `pick` → `pickwait` → `crown` → Classic `question`/`reveal`
+(+ the spotlight overlay) → `board`; after `podium`: `verdict` → `recap`. Grandma's phone sends `fav-pick {tag}` and
+`fav-lock {tag}`; phone screens are `fav-pickme`, `fav-crowned`, `fav-picked`, `gm-lobby`, `gm-pick`, `gm-wait`,
+`gm-result`, `gm-end`.
+
+**Tests:** `node --test kaboom/tests/*.test.js` (rules, no setup). End-to-end Playwright games live in
+`kaboom/tests/e2e/*.e2e.js` (Classic, reconnect, Grandma's Favorite); `kaboom/tests/README.md` explains how to run them and
+has the manual checklist. Rerun `classic.e2e.js` after any host change to make sure Classic still plays the same.
 
 **Conventions**
 - Keep it dependency-free apart from `kaboom/vendor/` (PeerJS 1.5.5 and qrcode-generator 1.4.4, MIT).

@@ -102,7 +102,9 @@
     while (answers.length < 4) answers.push('');
     const type = q.type === 'tf' ? 'tf' : 'quiz';
     const max = type === 'tf' ? 2 : 4;
-    let correct = Array.isArray(q.correct) ? q.correct.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < max) : [];
+    // "correct" is a list of answer positions counting from 0; a single number is fine too.
+    let correct = Array.isArray(q.correct) ? q.correct : q.correct == null || q.correct === '' ? [] : [q.correct];
+    correct = correct.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < max);
     correct = [...new Set(correct)].sort();
     if (type === 'tf') correct = correct.slice(0, 1);
     return {
