@@ -139,3 +139,46 @@ A scheduled Claude routine runs every week. Each run:
   `friends.js` in the order friends were added.
 - Keep the files valid JS: run `node --check friendo/data/*.js` after editing.
 - If the user pastes exported file contents from the site, replace the matching data file.
+
+## kaboom/ — live multiplayer quiz game
+
+A static site (no build step) at https://laiwong22.github.io/website_projects/kaboom/. The big
+screen runs `host.html`, phones run `index.html` and tap 1–4, and `edit.html` builds quizzes. The user
+guide is `kaboom/README.md`.
+
+**How it connects:** there is no backend. The host browser tab is the game server. It registers on the
+public PeerJS relay as `kaboom-lw22-<6-digit PIN>`, and phones open WebRTC data channels to it
+(`serialization: "json"`). All state (players, answers, scores) lives in `host.js`, and closing the host
+tab ends the game. `?peer=host:port` on any page points it at a self-hosted PeerServer (for testing).
+
+**Messages** (all JSON objects with a `t` field):
+- phone → host: `join {pid, name, avatar}` (also used to reconnect with the same `pid`), `answer {q, choice}`, `pong`
+- host → phone: `view {view}` (the phone renders `view.screen`: `lobby`, `intro`, `question`, `answered`,
+  `wait`, `result`, `standing`, `end`), `reject {reason, msg}`, `kicked`, `closed`, `ping` (every 4s)
+- The host builds each phone's view in `viewFor()` and re-sends it on every phase change. The phone keeps no
+  game state of its own, so a reconnect just gets the current view.
+
+**Quizzes** live only in the browser's `localStorage["kaboom.quizzes"]` (seeded with the sample
+"Kaboom warm-up"), so there are no quiz files in the repo. Format (see `KB.normalizeQuestion` in `js/shared.js`):
+`{id, title, updated, questions: [{id, type: "quiz"|"tf", text, image, answers: [4 strings], correct: [indexes]}]}`.
+Export/import uses `{kaboom: 1, quizzes: [...]}` JSON files. Blank answers are dropped at play time, so
+the options are always numbered 1..n.
+
+**Scoring** (`scoreQuestion` in `host.js`): a right answer earns `round(1000 * (1 - t/T/2))`, plus a streak
+bonus of `min((streak-1)*100, 500)`. On a multi-answer question any right option counts.
+
+**Look and feel:** a cartoon style (thick `--outline` borders, hard drop shadows, spinning sunburst background).
+The host character is **Granny Boom**, an original cartoon grandma with a bazooka, drawn as inline SVG in
+`js/fx.js` (`KBFx.granny({mood: "happy"|"shout"|"shock", say, flip, cls})`, plus `KBFx.say`, `KBFx.fire` and
+`KBFx.muzzle`). `KBFx.rocket(from, to)` flies a rocket along an arc and resolves on impact; `KBFx.explode(at, {size, word})`
+draws a comic explosion. On phones, tapping an answer fires a rocket at that button (`fireAt` in `play.js`; incoming
+views wait in `P.pendingView` until it finishes). On the host, `blastWrong()` fires at each wrong tile when time's up.
+Her lines live in `LINES` in `host.js` and `play.js`.
+
+**Conventions**
+- Keep it dependency-free apart from `kaboom/vendor/` (PeerJS 1.5.5 and qrcode-generator 1.4.4, MIT).
+  Don't switch to CDN copies.
+- Music and SFX are synthesized in `js/sound.js`; keep them original.
+- Run `node --check kaboom/js/*.js` after editing. For an end-to-end test, run a local PeerServer
+  (`npx -p peer peerjs --port 9000 --host 127.0.0.1`), serve the repo root, and drive `host.html?peer=127.0.0.1:9000`
+  plus a few phone-sized Playwright contexts. Chromium needs `--disable-features=WebRtcHideLocalIpsWithMdns`.

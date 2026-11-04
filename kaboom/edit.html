@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#15112a">
+  <title>Kaboom! Quiz editor</title>
+  <meta name="description" content="Build Kaboom quizzes: multiple choice, true or false, several right answers and pictures.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='14' cy='19' r='11' fill='%2315112a'/%3E%3Cpath d='M21 10 Q25 4 29 5' stroke='%23ff6b2c' stroke-width='3' fill='none'/%3E%3Ccircle cx='29' cy='4' r='3' fill='%23ffd23f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/kaboom.css">
+</head>
+<body class="edit">
+  <header class="e-top">
+    <a class="logo" href="./">KAB<span class="o">OO</span>M!</a>
+    <nav>
+      <a href="./">Join a game</a>
+      <a href="host.html" id="host-link">Host a game</a>
+    </nav>
+  </header>
+  <div class="e-wrap">
+    <aside class="e-side">
+      <button class="btn" type="button" data-act="new">+ New quiz</button>
+      <h2>Your quizzes</h2>
+      <div class="quiz-list" id="quiz-list"></div>
+      <div class="row">
+        <button class="btn ghost small" type="button" data-act="import">Import</button>
+        <button class="btn ghost small" type="button" data-act="export-all">Export all</button>
+      </div>
+      <p class="hint">Quizzes are saved in this browser. Export them to back up or to host from another computer.</p>
+    </aside>
+    <main class="e-main" id="editor"></main>
+  </div>
+  <input type="file" id="import-file" accept=".json,application/json" multiple hidden>
+  <input type="file" id="image-file" accept="image/*" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/shared.js"></script>
+  <script src="js/edit.js"></script>
+</body>
+</html>

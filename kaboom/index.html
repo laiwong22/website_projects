@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#15112a">
+  <title>Kaboom! Join a game</title>
+  <meta name="description" content="Join a Kaboom quiz game with the PIN on the big screen.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='14' cy='19' r='11' fill='%2315112a'/%3E%3Cpath d='M21 10 Q25 4 29 5' stroke='%23ff6b2c' stroke-width='3' fill='none'/%3E%3Ccircle cx='29' cy='4' r='3' fill='%23ffd23f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/kaboom.css">
+</head>
+<body class="play">
+  <div id="app" class="p-main"></div>
+  <div id="bar" class="p-bar" hidden></div>
+  <div id="reconnect" class="reconnect" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="vendor/peerjs.min.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/play.js"></script>
+</body>
+</html>
