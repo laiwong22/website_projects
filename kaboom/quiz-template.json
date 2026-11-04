@@ -1,0 +1,43 @@
+{
+  "kaboom": 1,
+  "quizzes": [
+    {
+      "title": "My quiz",
+      "questions": [
+        {
+          "type": "quiz",
+          "text": "Which planet is known as the Red Planet?",
+          "answers": ["Venus", "Mars", "Jupiter", "Mercury"],
+          "correct": [1],
+          "image": ""
+        },
+        {
+          "type": "quiz",
+          "text": "Which of these are mammals? (More than one is right!)",
+          "answers": ["Dolphin", "Shark", "Bat", "Penguin"],
+          "correct": [0, 2],
+          "image": ""
+        },
+        {
+          "type": "quiz",
+          "text": "Which is bigger?",
+          "answers": ["The Sun", "The Moon"],
+          "correct": [0],
+          "image": ""
+        },
+        {
+          "type": "tf",
+          "text": "An octopus has three hearts.",
+          "correct": [0],
+          "image": ""
+        },
+        {
+          "type": "tf",
+          "text": "Lightning never strikes the same place twice.",
+          "correct": [1],
+          "image": ""
+        }
+      ]
+    }
+  ]
+}

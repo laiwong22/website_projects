@@ -53,6 +53,47 @@ reloading it ends the game for everyone.
   **Export** and then **Import** to move them to another computer. Exports are also your backup.
 - Unfinished questions (no text, no right answer marked, or fewer than 2 answers) are skipped when you host.
 
+## Quiz files (Import and Export)
+
+The quiz builder imports **`.json` quiz files**: the ones its **Export** button makes, or one you write yourself
+starting from [`quiz-template.json`](quiz-template.json) (also linked in the quiz builder, under Import).
+One file can hold several quizzes:
+
+```json
+{
+  "kaboom": 1,
+  "quizzes": [
+    {
+      "title": "My quiz",
+      "questions": [
+        { "type": "quiz", "text": "Which planet is known as the Red Planet?",
+          "answers": ["Venus", "Mars", "Jupiter", "Mercury"], "correct": [1], "image": "" },
+        { "type": "tf", "text": "An octopus has three hearts.", "correct": [0], "image": "" }
+      ]
+    }
+  ]
+}
+```
+
+| Field | What to put |
+| --- | --- |
+| `title` | The quiz name (up to 80 characters) |
+| `type` | `"quiz"` for multiple choice, `"tf"` for true or false |
+| `text` | The question (up to 200 characters) |
+| `answers` | Multiple choice only: 2 to 4 answers, each in quotes (up to 80 characters each). Leave it out for true or false |
+| `correct` | Which answers are right, **counting from 0**: `0` = answer 1, `1` = answer 2, `2` = answer 3, `3` = answer 4. Several can be right: `[0, 2]`. For true or false, `[0]` = True and `[1]` = False |
+| `image` | Optional: an `https://` link to a picture, or `""` for none. You can also add pictures in the builder after importing |
+
+Tips:
+
+- Edit the file in a plain-text editor (Notepad, TextEdit in plain-text mode, VS Code). Kaboom fixes curly
+  "smart" quotes and a comma after the last item by itself. Other typos, like a missing comma or quote, stop that
+  file from importing, and the message says which line to look at.
+- Every text goes in straight double quotes, and items in a list are separated by commas.
+- Questions with a problem (no text, fewer than 2 answers, no right answer marked) still import. They're marked
+  red with what's missing, and they're skipped when you host until you fix them. Import never deletes or changes
+  your other quizzes.
+
 ## Good to know
 
 - No accounts or servers to set up. Phones reach the host screen through PeerJS, a free public relay

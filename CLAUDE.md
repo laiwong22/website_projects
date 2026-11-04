@@ -172,8 +172,11 @@ tab ends the game. `?peer=host:port` on any page points it at a self-hosted Peer
 **Quizzes** live only in the browser's `localStorage["kaboom.quizzes"]` (seeded with the sample
 "Kaboom warm-up"), so there are no quiz files in the repo. Format (see `KB.normalizeQuestion` in `js/shared.js`):
 `{id, title, updated, questions: [{id, type: "quiz"|"tf", text, image, answers: [4 strings], correct: [indexes]}]}`.
-Export/import uses `{kaboom: 1, quizzes: [...]}` JSON files. Blank answers are dropped at play time, so
-the options are always numbered 1..n.
+Export/import uses `{kaboom: 1, quizzes: [...]}` JSON files; `kaboom/quiz-template.json` is the hand-editing
+template (keep it valid and in sync with the format, and see "Quiz files" in `kaboom/README.md`). Import also
+accepts a bare quiz or a list of quizzes, retries after fixing curly quotes and trailing commas, gives every
+imported question a fresh id, and accepts `correct` as a single number. Blank answers are dropped at play time,
+so the options are always numbered 1..n.
 
 **Scoring** (`scoreQuestion` in `host.js`): a right answer earns `round(1000 * (1 - t/T/2))`, plus a streak
 bonus of `min((streak-1)*100, 500)`. On a multi-answer question any right option counts.
