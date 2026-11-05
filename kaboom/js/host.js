@@ -525,6 +525,10 @@
     return Promise.all(shots).then(() => KBFx.sleep(targets.length ? 750 : 300));
   }
 
+  // The wreck on a tile is drawn from a seed, so the reveal screen redraws the very same damage.
+  const WRECK_SALT = Math.floor(Math.random() * 1e6);
+  const wreckSeed = (i) => WRECK_SALT + (G.qi + 1) * 97 + i * 13;
+
   function shoot(g, el, first) {
     KBFx.fire(g);
     S.launch();
@@ -539,7 +543,10 @@
         S.smallBoom();
       }
       KBFx.explode(to, { size: h * (first ? 2.3 : 1.8), word: first ? '' : pick(KBFx.BOOM_WORDS) });
-      if (el.classList.contains('tile')) el.classList.add('blasted');
+      if (el.classList.contains('tile')) {
+        el.classList.add('blasted');
+        KBFx.wreck(el, wreckSeed([...el.parentNode.children].indexOf(el)));
+      }
       KBFx.shake(stage);
     });
   }
@@ -967,6 +974,9 @@
       '<p><button class="btn big" type="button" data-act="next">' + (last ? 'Final results ▸' : 'Leaderboard ▸') + '</button></p></div>' +
       '</div>' +
       tilesHtml(q, true);
+    stage.querySelectorAll('.tiles .tile').forEach((t, i) => {
+      if (t.classList.contains('blasted')) KBFx.wreck(t, wreckSeed(i));
+    });
   }
 
   function renderBoard() {

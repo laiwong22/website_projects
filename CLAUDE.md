@@ -185,7 +185,9 @@ bonus of `min((streak-1)*100, 500)`. On a multi-answer question any right option
 The host character is **Granny Boom**, an original cartoon grandma with a bazooka, drawn as inline SVG in
 `js/fx.js` (`KBFx.granny({mood: "happy"|"shout"|"shock", say, flip, cls})`, plus `KBFx.say`, `KBFx.fire` and
 `KBFx.muzzle`). `KBFx.rocket(from, to)` flies a rocket along an arc and resolves on impact; `KBFx.explode(at, {size, word})`
-draws a comic explosion. On phones, tapping an answer fires a rocket at that button (`fireAt` in `play.js`; incoming
+draws a comic explosion; `KBFx.wreck(el, seed)` leaves wreckage on a blown-up answer (hole, cracks, scorch, flames,
+smoke, rubble; the same seed draws the same wreck, which is how the host's reveal screen redraws identical damage).
+On phones, tapping an answer keeps it (`.chosen`) and fires rockets at every other option (`fireAt` in `play.js`; incoming
 views wait in `P.pendingView` until it finishes). On the host, `blastWrong()` fires at each wrong tile when time's up.
 Her lines live in `LINES` in `host.js` and `play.js`.
 

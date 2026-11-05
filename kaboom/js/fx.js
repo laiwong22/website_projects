@@ -311,6 +311,92 @@
 
   FX.BOOM_WORDS = ['BOOM!', 'POW!', 'BLAM!', 'KABOOM!', 'WHAM!', 'BANG!'];
 
+  // ---------- wreckage left on an answer a rocket blew up ----------
+  // Small seeded random generator, so the same seed draws the same wreck (the host redraws the
+  // reveal screen and the damage must not jump around).
+  function seeded(seed) {
+    let a = (seed >>> 0) || 1;
+    return () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Blast a hole in an element and leave cracks, scorch, flames, smoke and rubble on it.
+  // The element must be position: relative. seed is optional.
+  FX.wreck = function (el, seed) {
+    if (!el || el.querySelector(':scope > .wreck')) return;
+    const r = seeded(seed == null ? Math.floor(Math.random() * 4294967295) : seed);
+    const w = Math.max(60, el.offsetWidth);
+    const h = Math.max(40, el.offsetHeight);
+    // on wide answer tiles keep the hole right of the text, so the answer can still be read
+    const cx = w * (w > h * 2 ? 0.6 + r() * 0.16 : 0.38 + r() * 0.24);
+    const cy = h * (0.42 + r() * 0.16);
+    const hr = Math.min(h * 0.3, w * 0.2) * (0.9 + r() * 0.2);
+    const P = (x, y) => x.toFixed(1) + ',' + y.toFixed(1);
+    let hole = '';
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const rr = hr * (0.55 + r() * 0.6);
+      hole += (i ? 'L' : 'M') + P(cx + Math.cos(a) * rr * 1.3, cy + Math.sin(a) * rr);
+    }
+    hole += 'Z';
+    // cracks run out from the hole, scaled to the element's width and height separately
+    let cracks = '';
+    const branches = 6 + Math.floor(r() * 3);
+    for (let b = 0; b < branches; b++) {
+      const a = (b / branches) * Math.PI * 2 + r() * 0.6;
+      const lx = w * (0.18 + r() * 0.22);
+      const ly = h * (0.25 + r() * 0.25);
+      let d = 'M' + P(cx + Math.cos(a) * hr * 1.2, cy + Math.sin(a) * hr * 0.9);
+      const steps = 3 + Math.floor(r() * 2);
+      let x = 0;
+      let y = 0;
+      for (let k = 1; k <= steps; k++) {
+        const ang = a + (r() - 0.5) * 0.8;
+        x = cx + Math.cos(ang) * (hr * 1.2 + (lx * k) / steps);
+        y = cy + Math.sin(ang) * (hr * 0.9 + (ly * k) / steps);
+        d += 'L' + P(x, y);
+      }
+      cracks += d;
+      if (r() < 0.6) cracks += 'M' + P(x, y) + 'L' + P(x + (r() - 0.5) * lx * 0.5, y + (r() - 0.5) * ly * 0.5);
+    }
+    const svg =
+      '<svg class="wreck-svg" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path d="' + cracks + '" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+      '<path d="' + cracks + '" fill="none" stroke="' + OUT + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+      '<path d="' + hole + '" fill="' + OUT + '" stroke="#4a3f63" stroke-width="4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+      '<path d="' + hole + '" fill="none" stroke="#ff8a3d" stroke-width="2.5" stroke-dasharray="5 7" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+      '</svg>';
+    const pct = (v, of) => ((v / of) * 100).toFixed(1) + '%';
+    // inside the element (clipped): scorch, cracks, hole, rubble
+    let inside = '<i class="scorch" style="left:' + pct(cx, w) + ';top:' + pct(cy, h) + '"></i>' + svg;
+    const rubble = ['#3b3550', '#5b5470', '#2a2440', '#77708c'];
+    for (let i = 0; i < 6; i++) {
+      inside +=
+        '<i class="rubble" style="left:' + (6 + r() * 86).toFixed(0) + '%;--s:' + (7 + r() * 9).toFixed(0) + 'px;--rot:' + (r() * 90).toFixed(0) +
+        'deg;--c:' + rubble[i % rubble.length] + '"></i>';
+    }
+    // free to rise above it: flames at the hole's edges and smoke
+    let bits = '';
+    const fs = Math.max(14, Math.min(34, h * 0.24));
+    for (let i = 0; i < 2; i++) {
+      const fx = i ? cx + hr * 1.25 : cx - hr * 1.15;
+      bits +=
+        '<i class="flame" style="left:' + pct(fx, w) + ';top:' + pct(cy + hr * 0.55, h) + ';--fs:' + (fs * (0.85 + r() * 0.3)).toFixed(0) +
+        'px;animation-delay:' + (r() * 0.2).toFixed(2) + 's"></i>';
+    }
+    for (let i = 0; i < 3; i++) {
+      bits +=
+        '<i class="wisp" style="left:' + pct(cx + (r() - 0.5) * hr, w) + ';top:' + pct(cy, h) + ';--dx:' + ((r() - 0.5) * 30).toFixed(0) +
+        'px;animation-delay:' + (i * 0.7 + r() * 0.3).toFixed(2) + 's"></i>';
+    }
+    el.insertAdjacentHTML('beforeend', '<span class="wreck" aria-hidden="true"><span class="wreck-clip">' + inside + '</span>' + bits + '</span>');
+    el.classList.add('wrecked');
+  };
+
   // ---------- Grandma's Favorite: hearts and a smoke puff ----------
   const HEART =
     '<svg viewBox="0 0 32 30"><path d="M16,28 C6,20 1,14 1,8.5 C1,4.4 4.3,1.5 8.2,1.5 C11.4,1.5 14.2,3.6 16,6.6 C17.8,3.6 20.6,1.5 23.8,1.5 ' +

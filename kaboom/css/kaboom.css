@@ -561,13 +561,33 @@ body.play {
   text-shadow: 0 3px 0 var(--outline);
 }
 
-.qgrid.fired .ans-btn:not(.target) {
-  opacity: 0.3;
-  transform: scale(0.94);
+/* the answer the player chose: it survives, glowing, with a check mark */
+.ans-btn.chosen {
+  z-index: 2;
+  transform: scale(1.04);
+  box-shadow: inset 0 -10px 0 var(--dark), 0 6px 0 var(--outline), 0 0 0 6px #fff, 0 0 36px 12px rgba(255, 230, 120, 0.85);
 }
 
-/* crosshair that locks onto the chosen answer */
-.ans-btn.target::after {
+.ans-btn.chosen::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--good);
+  border: 3px solid var(--outline);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  text-shadow: none;
+  animation: pop-in 0.35s ease-out;
+}
+
+/* crosshairs lock onto every other answer before the rockets hit */
+.ans-btn.targeted::after {
   content: '';
   position: absolute;
   left: 50%;
@@ -581,6 +601,7 @@ body.play {
   transform: translate(-50%, -50%) scale(1.7) rotate(-90deg);
   opacity: 0;
   animation: reticle 0.4s ease-out forwards;
+  z-index: 3;
 }
 
 @keyframes reticle {
@@ -590,21 +611,8 @@ body.play {
   }
 }
 
-.ans-btn.hit {
+.ans-btn.wrecked {
   animation: hit 0.45s ease-out forwards;
-}
-
-.ans-btn.hit::after {
-  opacity: 0;
-  animation: none;
-}
-
-.ans-btn.hit::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: radial-gradient(circle at 50% 50%, rgba(27, 12, 0, 0.55) 0 22%, rgba(27, 12, 0, 0.2) 45%, transparent 70%);
 }
 
 .locked-row {
@@ -1219,19 +1227,106 @@ body.host.setup-mode {
   grid-column: 1 / -1;
 }
 
-/* a wrong answer after Granny's rocket hits it */
+/* a wrong answer after Granny's rocket hits it (the wreckage itself is .wreck, below) */
 .tile.blasted {
-  filter: grayscale(0.85) brightness(0.5);
   animation: hit 0.45s ease-out forwards;
 }
 
-.tile.blasted::after {
+/* ---------- wreckage (KBFx.wreck) on a blown-up answer, host and phones ---------- */
+.wrecked::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 16px;
-  background: radial-gradient(ellipse at 50% 55%, rgba(20, 10, 0, 0.7) 0 20%, rgba(20, 10, 0, 0.3) 45%, transparent 75%);
+  border-radius: inherit;
+  background: rgba(30, 24, 46, 0.62);
+  z-index: 1;
   pointer-events: none;
+}
+
+.wreck {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wreck-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.wreck-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.wreck .scorch {
+  position: absolute;
+  width: 62%;
+  height: 130%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(18, 8, 0, 0.7), rgba(18, 8, 0, 0.3) 55%, rgba(18, 8, 0, 0));
+}
+
+.wreck .rubble {
+  position: absolute;
+  bottom: 5px;
+  width: var(--s);
+  height: calc(var(--s) * 0.75);
+  background: var(--c);
+  border: 2px solid var(--outline);
+  border-radius: 2px 5px 1px 4px;
+  transform: rotate(var(--rot));
+}
+
+.wreck .flame {
+  position: absolute;
+  width: var(--fs);
+  height: calc(var(--fs) * 1.45);
+  transform: translate(-50%, -100%);
+  transform-origin: 50% 100%;
+  border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 50% 72%, #fff3b0 0 16%, #ffd23f 34%, #ff6b2c 62%, rgba(255, 107, 44, 0) 72%);
+  animation: flicker 0.18s ease-in-out infinite alternate;
+}
+
+@keyframes flicker {
+  to {
+    transform: translate(-50%, -100%) scale(0.82, 1.14) rotate(4deg);
+  }
+}
+
+.wreck .wisp {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(205, 200, 222, 0.8);
+  border: 2px solid rgba(27, 18, 51, 0.45);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.4);
+  animation: wisp 2.1s ease-out infinite;
+}
+
+@keyframes wisp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 10px)), calc(-50% - 80px)) scale(1.7);
+  }
 }
 
 .tiles.revealed .tile {
