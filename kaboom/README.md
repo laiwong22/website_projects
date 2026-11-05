@@ -4,8 +4,8 @@ A live quiz game for a room full of people. Your computer shows the questions on
 and everyone answers on their phones by tapping 1–4.
 
 Your host is **Granny Boom**, a cartoon grandma with a bazooka. She cheers players on, heckles slow ones and
-blows up every wrong answer when time runs out. When a player taps an answer on their phone, a rocket flies in
-and explodes on that button.
+blows up every wrong answer when time runs out. When a player taps an answer on their phone, their choice lights
+up and rockets blow up all the other options, leaving wreckage behind.
 
 Live at **https://laiwong22.github.io/website_projects/kaboom/** once this folder is on the
 default branch (GitHub Pages already publishes this repo).
@@ -24,10 +24,12 @@ default branch (GitHub Pages already publishes this repo).
    Click a name to remove someone, or **Lock game** to stop new people joining.
 3. Click **Start game** (or press Space). For each question:
    - the question shows alone for a few seconds, then the 4 colored answers appear and the timer's fuse starts burning;
-   - phones show only the numbered buttons, so players have to look at the big screen. Tapping one fires a rocket
-     at it (it explodes, and the answer is locked in);
+   - phones show only the numbered buttons, so players have to look at the big screen. Tapping one locks it in
+     (it's sent right away, so the animation never costs points): it glows with a ✓ while rockets blow up the
+     other options;
    - when the fuse runs out, or everyone has answered, Granny fires her bazooka: a rocket hits each wrong answer,
-     it goes **KABOOM**, and the right answer lights up with a chart of how many people picked each option;
+     it goes **KABOOM** and leaves wreckage (a hole, cracks, flames and smoke), and the right answer lights up with
+     a chart of how many people picked each option;
    - **Leaderboard** shows the top 5, then **Next question**.
 4. At the end a podium shows the top 3 while Granny shoots fireworks. You can see all results, download a CSV, or **Play again**
    with the same players (pick the same quiz or another one).

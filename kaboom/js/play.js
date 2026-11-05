@@ -487,25 +487,35 @@
   };
   const granny = (mood, say) => KBFx.granny({ mood, say, cls: 'p-granny bubble-top' });
 
-  // Tap an answer: a rocket flies up and blows up on that button.
+  // Tap an answer: it lights up, crosshairs lock onto every other answer, and rockets blow them up,
+  // leaving wreckage. The answer itself was already sent when the player tapped.
   function fireAt(btn, nextView) {
     P.firing = true;
     P.pendingView = nextView;
     const grid = btn.parentNode;
     grid.classList.add('fired');
-    btn.classList.add('target');
-    const to = KBFx.center(btn);
-    const box = btn.getBoundingClientRect();
+    btn.classList.add('chosen');
+    const others = [...grid.querySelectorAll('.ans-btn')].filter((b) => b !== btn);
+    others.forEach((b) => b.classList.add('targeted'));
     const from = { x: window.innerWidth / 2, y: window.innerHeight + 50 };
-    KBFx.rocket(from, to, { size: Math.min(120, window.innerWidth * 0.27), duration: 460, arc: 0.12 })
+    const size = Math.min(110, window.innerWidth * 0.24);
+    const shots = others.map((b, i) =>
+      KBFx.sleep(180 + i * 150)
+        .then(() => KBFx.rocket(from, KBFx.center(b), { size, duration: 430, arc: 0.12 }))
+        .then((to) => {
+          if (!P.firing) return;
+          if (navigator.vibrate) navigator.vibrate(45);
+          const box = b.getBoundingClientRect();
+          KBFx.explode(to, { size: Math.min(box.width, box.height) * 1.35, word: i === 0 ? KBFx.pick(KBFx.BOOM_WORDS) : '' });
+          b.classList.remove('targeted');
+          KBFx.wreck(b);
+          KBFx.shake(app);
+        })
+    );
+    Promise.all(shots)
+      .then(() => KBFx.sleep(KBFx.reduced ? 150 : 1100))
       .then(() => {
-        if (navigator.vibrate) navigator.vibrate([70, 40, 40]);
-        KBFx.explode(to, { size: Math.min(box.width, box.height) * 1.45, word: KBFx.pick(KBFx.BOOM_WORDS) });
-        btn.classList.add('hit');
-        KBFx.shake(app);
-        return KBFx.sleep(KBFx.reduced ? 150 : 900);
-      })
-      .then(() => {
+        if (!P.firing) return;
         P.firing = false;
         const v = P.pendingView;
         P.pendingView = null;
