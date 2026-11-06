@@ -139,6 +139,41 @@
   // Returns null on success, or the storage error (usually "quota exceeded").
   KB.saveQuizzes = (list) => KB.store.set(KB.QUIZ_KEY, list);
 
+  // A quiz can travel inside a link: host.html#quiz=<data> or edit.html#quiz=<data>, where <data> is
+  // "z." + base64url(raw-deflate(quiz file JSON)) or "j." + base64url(quiz file JSON). The data stays in the
+  // link (the part after # is never sent to the website). Opening it adds the quiz to this browser, or
+  // updates it if a quiz with the same id is already here, so opening the link twice makes no duplicate.
+  // Resolves to null (no quiz in the link), { quizzes } or { error }.
+  KB.importFromLink = async function () {
+    const m = /^#quiz=([jz])\.([A-Za-z0-9_-]+)$/.exec(location.hash);
+    if (!m) return null;
+    history.replaceState(null, '', location.pathname + location.search);
+    try {
+      let bytes = Uint8Array.from(atob(m[2].replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+      if (m[1] === 'z') {
+        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      const data = JSON.parse(new TextDecoder().decode(bytes));
+      const raws = Array.isArray(data) ? data : data && Array.isArray(data.quizzes) ? data.quizzes : [data];
+      const list = KB.loadQuizzes();
+      const added = [];
+      for (const raw of raws) {
+        if (!raw || typeof raw !== 'object' || !Array.isArray(raw.questions)) continue;
+        const z = KB.normalizeQuiz(raw);
+        const i = list.findIndex((o) => o.id === z.id);
+        if (i >= 0) list[i] = z;
+        else list.unshift(z);
+        added.push(z);
+      }
+      if (!added.length) return { error: 'That link didn\u2019t have a quiz in it.' };
+      if (KB.saveQuizzes(list)) return { error: 'This browser is out of space for quizzes. Delete an old quiz and open the link again.' };
+      return { quizzes: added };
+    } catch (e) {
+      return { error: 'That quiz link looks broken or cut off. Ask for a fresh one.' };
+    }
+  };
+
   // What's wrong with a question, or '' if it's ready to play.
   KB.questionProblem = function (q) {
     if (!q.text.trim()) return 'Add the question text';

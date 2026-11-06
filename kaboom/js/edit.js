@@ -436,4 +436,14 @@
   });
 
   renderAll();
+  // Opened from a quiz link: add the quiz and show it.
+  KB.importFromLink().then((res) => {
+    if (!res) return;
+    if (res.error) return toast(res.error);
+    quizzes = KB.loadQuizzes();
+    currentId = res.quizzes[0].id;
+    history.replaceState(null, '', '#' + encodeURIComponent(currentId));
+    renderAll();
+    toast('Added \u201c' + res.quizzes[0].title + '\u201d from the link.');
+  });
 })();
