@@ -140,6 +140,14 @@ Tips:
   red with what's missing, and they're skipped when you host until you fix them. Import never deletes or changes
   your other quizzes.
 
+### Quiz links
+
+A quiz can also travel inside a link, ready to play with no file to import:
+`…/kaboom/host.html#quiz=<data>` (opens the host screen with the quiz added and picked) or `…/kaboom/edit.html#quiz=<data>`
+(opens it in the quiz builder). The quiz data lives only in the link, never on the website, so the answers stay private.
+Open the link on the computer you'll host from; opening it again just updates the same quiz. Ask Claude to make one
+from a quiz file.
+
 ## Good to know
 
 - No accounts or servers to set up. Phones reach the host screen through PeerJS, a free public relay

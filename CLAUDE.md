@@ -176,7 +176,10 @@ Export/import uses `{kaboom: 1, quizzes: [...]}` JSON files; `kaboom/quiz-templa
 template (keep it valid and in sync with the format, and see "Quiz files" in `kaboom/README.md`). Import also
 accepts a bare quiz or a list of quizzes, retries after fixing curly quotes and trailing commas, gives every
 imported question a fresh id, and accepts `correct` as a single number. Blank answers are dropped at play time,
-so the options are always numbered 1..n.
+so the options are always numbered 1..n. **Quiz links** (`KB.importFromLink` in `js/shared.js`): `host.html#quiz=z.<data>` or
+`edit.html#quiz=z.<data>`, where `<data>` is base64url (no padding) of the raw-deflate-compressed quiz file JSON (`j.` + plain
+base64url also works); give the quiz a stable `id` so reopening the link updates it instead of duplicating it. Use this to
+hand the user a ready-to-play quiz without putting its answers in the public repo.
 
 **Scoring** (`scoreQuestion` in `host.js`): a right answer earns `round(1000 * (1 - t/T/2))`, plus a streak
 bonus of `min((streak-1)*100, 500)`. On a multi-answer question any right option counts.

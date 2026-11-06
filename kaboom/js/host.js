@@ -1255,4 +1255,12 @@
   };
 
   renderSetup();
+  // Opened from a quiz link: add the quiz to this browser and pick it.
+  KB.importFromLink().then((res) => {
+    if (!res || G.phase !== 'setup') return;
+    if (res.error) return banner(res.error);
+    G.quizId = res.quizzes[0].id;
+    renderSetup();
+    toast('\u201c' + res.quizzes[0].title + '\u201d is added and picked. Choose a game mode, then Open lobby.');
+  });
 })();
