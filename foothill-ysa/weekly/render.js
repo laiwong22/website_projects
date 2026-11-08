@@ -32,7 +32,10 @@ const THEMES = {
 const t = THEMES[d.month] || THEMES[11];
 
 const n = d.days.length;
-const rowH = n >= 4 ? 168 : 200;
+// Three density tiers so busy weeks still fit 1350px.
+const dense = n >= 5;
+const rowH = dense ? 148 : n >= 4 ? 168 : 200;
+const qrSize = dense ? 120 : 140;
 // Optional per-day "qr": an image path (relative to the JSON file), shown at the right end of the row.
 const path = require('path');
 const qrImg = x => {
@@ -50,23 +53,23 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1080px;height:1350px;background:${t.bg};color:#222;font-family:'Libre Baskerville',serif;
-  display:flex;flex-direction:column;align-items:center;padding:56px 90px 44px;position:relative}
+  display:flex;flex-direction:column;align-items:center;padding:${dense ? '44px 80px 36px' : '56px 90px 44px'};position:relative}
 .top{display:flex;align-items:center;justify-content:space-between;width:100%}
 .range{font-family:Poppins,sans-serif;font-weight:500;font-size:40px;letter-spacing:.22em;color:#222}
-h1{font-family:'Kaushan Script',cursive;font-weight:400;font-size:118px;line-height:1.15;margin:4px 0 26px;color:#222}
-.rows{display:flex;flex-direction:column;gap:${n >= 4 ? 20 : 28}px;width:100%;flex:1;justify-content:center}
-.row{display:flex;align-items:center;gap:40px;background:${t.row};border-radius:26px;padding:16px;min-height:${rowH}px}
+h1{font-family:'Kaushan Script',cursive;font-weight:400;font-size:${dense ? 104 : 118}px;line-height:1.15;margin:${dense ? '0 0 14px' : '4px 0 26px'};color:#222}
+.rows{display:flex;flex-direction:column;gap:${dense ? 14 : n >= 4 ? 20 : 28}px;width:100%;flex:1;justify-content:center}
+.row{display:flex;align-items:center;gap:40px;background:${t.row};border-radius:26px;padding:${dense ? 12 : 16}px;min-height:${rowH}px}
 .box{flex:none;width:${rowH - 32}px;align-self:stretch;background:#fff;border-radius:16px;display:flex;flex-direction:column;
   align-items:center;justify-content:center;font-family:Poppins,sans-serif;color:#2a2a2a}
-.dow{font-weight:700;font-size:28px}
-.num{font-weight:700;font-size:${n >= 4 ? 62 : 74}px;line-height:1.05}
+.dow{font-weight:700;font-size:${dense ? 25 : 28}px}
+.num{font-weight:700;font-size:${dense ? 56 : n >= 4 ? 62 : 74}px;line-height:1.05}
 .qr{flex:none;margin-left:auto;background:#fff;border-radius:12px;padding:8px 8px 4px;display:flex;flex-direction:column;align-items:center}
-.qr img{width:140px;height:140px;display:block}
+.qr img{width:${qrSize}px;height:${qrSize}px;display:block}
 .qr span{font-family:Poppins,sans-serif;font-size:15px;font-weight:600;color:#333;margin-top:2px}
-.txt{color:${t.text};font-size:${n >= 4 ? 32 : 36}px;line-height:1.3;padding-right:14px}
-.other{width:100%;margin-top:26px;text-align:center;font-size:28px;line-height:1.45;color:#333}
+.txt{color:${t.text};font-size:${dense ? 30 : n >= 4 ? 32 : 36}px;line-height:1.28;padding-right:14px}
+.other{width:100%;margin-top:${dense ? 16 : 26}px;text-align:center;font-size:${dense ? 25 : 28}px;line-height:1.45;color:#333}
 .other b{font-family:Poppins,sans-serif;letter-spacing:.18em;font-size:24px;color:${t.row};display:block;margin-bottom:4px}
-.chev{display:flex;gap:10px;margin-top:22px}
+.chev{display:flex;gap:10px;margin-top:${dense ? 14 : 22}px}
 .chev span{width:84px;height:44px;background:${t.acc};clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%,30% 50%)}
 </style></head><body>
 <div class="top">${t.orn(t.ornC)}<div class="range">${esc(d.range)}</div>${t.orn(t.ornC)}</div>

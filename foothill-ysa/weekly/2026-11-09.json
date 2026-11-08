@@ -17,7 +17,12 @@
     {
       "dow": "THURS",
       "num": "12",
-      "text": "Business meetup 6:30 at the church (1400 S 1900 E), then Institute at the U of U at 7"
+      "text": "Starting & Growing Your Business meetup, 6:30 PM at the church (1400 S 1900 E)"
+    },
+    {
+      "dow": "THURS",
+      "num": "12",
+      "text": "Institute for 26-35 year-olds at the U of U institute building at 7 PM"
     },
     {
       "dow": "SAT",
