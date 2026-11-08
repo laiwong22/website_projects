@@ -5,7 +5,9 @@
     {
       "dow": "MON",
       "num": "9",
-      "text": "FHE: Walk at Sugar House Park - meet at the NE corner at 6:30"
+      "text": "FHE: Walk at Sugar House Park - meet at the NE corner at 6:30",
+      "qr": "2026-11-09-fhe-qr.png",
+      "qrLabel": "Scan for location"
     },
     {
       "dow": "TUES",

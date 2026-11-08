@@ -33,9 +33,16 @@ const t = THEMES[d.month] || THEMES[11];
 
 const n = d.days.length;
 const rowH = n >= 4 ? 168 : 200;
+// Optional per-day "qr": an image path (relative to the JSON file), shown at the right end of the row.
+const path = require('path');
+const qrImg = x => {
+  if (!x.qr) return '';
+  const b64 = fs.readFileSync(path.resolve(path.dirname(dataPath), x.qr)).toString('base64');
+  return `<div class="qr"><img src="data:image/png;base64,${b64}"><span>${esc(x.qrLabel || 'Scan for map')}</span></div>`;
+};
 const days = d.days.map(x => `
   <div class="row"><div class="box"><div class="dow">${esc(x.dow)}</div><div class="num">${esc(x.num)}</div></div>
-  <div class="txt">${esc(x.text)}</div></div>`).join('');
+  <div class="txt">${esc(x.text)}</div>${qrImg(x)}</div>`).join('');
 const other = (d.other || []).map(o => `<div>${esc(o)}</div>`).join('');
 
 const html = `<!doctype html><html><head><meta charset="utf-8">
@@ -53,6 +60,9 @@ h1{font-family:'Kaushan Script',cursive;font-weight:400;font-size:118px;line-hei
   align-items:center;justify-content:center;font-family:Poppins,sans-serif;color:#2a2a2a}
 .dow{font-weight:700;font-size:28px}
 .num{font-weight:700;font-size:${n >= 4 ? 62 : 74}px;line-height:1.05}
+.qr{flex:none;margin-left:auto;background:#fff;border-radius:12px;padding:8px 8px 4px;display:flex;flex-direction:column;align-items:center}
+.qr img{width:140px;height:140px;display:block}
+.qr span{font-family:Poppins,sans-serif;font-size:15px;font-weight:600;color:#333;margin-top:2px}
 .txt{color:${t.text};font-size:${n >= 4 ? 32 : 36}px;line-height:1.3;padding-right:14px}
 .other{width:100%;margin-top:26px;text-align:center;font-size:28px;line-height:1.45;color:#333}
 .other b{font-family:Poppins,sans-serif;letter-spacing:.18em;font-size:24px;color:${t.row};display:block;margin-bottom:4px}
