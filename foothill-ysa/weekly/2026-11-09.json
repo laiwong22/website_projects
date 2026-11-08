@@ -1,0 +1,31 @@
+{
+  "month": 11,
+  "range": "NOVEMBER 9-14",
+  "days": [
+    {
+      "dow": "MON",
+      "num": "9",
+      "text": "FHE: Walk at Sugar House Park - meet at the NE corner at 6:30"
+    },
+    {
+      "dow": "TUES",
+      "num": "10",
+      "text": "Stake volleyball. Join the GroupMe (link in bio) and answer Camberlin's poll"
+    },
+    {
+      "dow": "THURS",
+      "num": "12",
+      "text": "Business meetup 6:30 at the church (1400 S 1900 E), then Institute at the U of U at 7"
+    },
+    {
+      "dow": "SAT",
+      "num": "14",
+      "text": "Turkey Bowl coed flag football & BBQ! Arrive at 9 AM, BBQ at noon"
+    }
+  ],
+  "other": [
+    "Nov 15: Devotional & service with Sister Camille Johnson, 7 PM",
+    "Nov 19: RS Cake & Covenants, 7 PM at 1400 S 1900 E",
+    "Nov 22: Friendsgiving Feast, 6 PM at 1400 S 1900 E"
+  ]
+}
