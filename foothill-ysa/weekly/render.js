@@ -34,7 +34,7 @@ const t = THEMES[d.month] || THEMES[11];
 const n = d.days.length;
 // Three density tiers so busy weeks still fit 1350px.
 const dense = n >= 5;
-const rowH = dense ? 148 : n >= 4 ? 168 : 200;
+const rowH = n >= 6 ? 122 : dense ? 148 : n >= 4 ? 168 : 200;
 const qrSize = dense ? 120 : 140;
 // Optional per-day "qr": an image path (relative to the JSON file), shown at the right end of the row.
 const path = require('path');
@@ -57,9 +57,9 @@ body{width:1080px;height:1350px;background:${t.bg};color:#222;font-family:'Libre
 .top{display:flex;align-items:center;justify-content:space-between;width:100%}
 .range{font-family:Poppins,sans-serif;font-weight:500;font-size:40px;letter-spacing:.22em;color:#222}
 h1{font-family:'Kaushan Script',cursive;font-weight:400;font-size:${dense ? 104 : 118}px;line-height:1.15;margin:${dense ? '0 0 14px' : '4px 0 26px'};color:#222}
-.rows{display:flex;flex-direction:column;gap:${dense ? 14 : n >= 4 ? 20 : 28}px;width:100%;flex:1;justify-content:center}
+.rows{display:flex;flex-direction:column;gap:${n >= 6 ? 10 : dense ? 14 : n >= 4 ? 20 : 28}px;width:100%;flex:1;justify-content:center}
 .row{display:flex;align-items:center;gap:40px;background:${t.row};border-radius:26px;padding:${dense ? 12 : 16}px;min-height:${rowH}px}
-.box{flex:none;width:${rowH - 32}px;align-self:stretch;background:#fff;border-radius:16px;display:flex;flex-direction:column;
+.box{flex:none;width:${Math.max(rowH - 32, 116)}px;align-self:stretch;background:#fff;border-radius:16px;display:flex;flex-direction:column;
   align-items:center;justify-content:center;font-family:Poppins,sans-serif;color:#2a2a2a}
 .dow{font-weight:700;font-size:${dense ? 25 : 28}px}
 .num{font-weight:700;font-size:${dense ? 56 : n >= 4 ? 62 : 74}px;line-height:1.05}
