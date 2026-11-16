@@ -5,7 +5,7 @@
     {
       "dow": "MON",
       "num": "16",
-      "text": "FHE with EMC: Autumn Hoe Down at the Wheeler Farm Barn at 7:30"
+      "text": "FHE with EMC: Autumn Hoe Down, 7:30 at the Wheeler Farm Barn (6351 S 900 E, Murray)"
     },
     {
       "dow": "TUES",
@@ -26,16 +26,12 @@
       "dow": "THURS",
       "num": "19",
       "text": "Institute for 26-35 year-olds at the U of U institute building at 7 PM"
-    },
-    {
-      "dow": "SAT",
-      "num": "21",
-      "text": "Cleaning after Thanksgiving, 9 AM at the church (1400 S 1900 E)"
     }
   ],
   "other": [
     "Nov 22: Friendsgiving Feast, 6 PM at 1400 S 1900 E",
     "Nov 22: Evening with Aabri Kimball, 6:30 PM, Holladay Stake Center",
+    "Nov 28: Cleaning after Thanksgiving, 9 AM at 1400 S 1900 E",
     "Christmas program: want to perform? Talk to Naomi or Ali"
   ]
 }
