@@ -2,10 +2,21 @@
   "month": 11,
   "range": "NOVEMBER 23-28",
   "days": [
-    {"dow":"MON","num":"23","text":"Pie night for FHE - meet at the church (1400 S 1900 E) at 7:00"},
-    {"dow":"TUES","num":"24","text":"Stake volleyball. Join the GroupMe (link in bio) and answer Camberlin's poll"},
-    {"dow":"THURS","num":"26","text":"Happy Thanksgiving! We're grateful for each of you"},
-    {"dow":"SAT","num":"28","text":"Cleaning after Thanksgiving, 9 AM at the church (1400 S 1900 E)"}
+    {
+      "dow": "MON",
+      "num": "23",
+      "text": "Pie night for FHE - meet at the church (1400 S 1900 E) at 7:00"
+    },
+    {
+      "dow": "THURS",
+      "num": "26",
+      "text": "Happy Thanksgiving! We're grateful for each of you"
+    },
+    {
+      "dow": "SAT",
+      "num": "28",
+      "text": "Cleaning after Thanksgiving, 9 AM at the church (1400 S 1900 E)"
+    }
   ],
   "other": [
     "Christmas program: want to perform? Talk to Naomi or Ali"
